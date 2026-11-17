@@ -560,6 +560,43 @@
       </view>
     </view>
 
+    <view wx:if="{{companionNotes.visible}}" class="companion-course-section">
+      <view class="section-title companion-course-title-row">
+        <view class="section-icon companion">伴</view>
+        <text class="section-title-text">陪伴手札</text>
+        <text class="companion-course-zone" bindtap="openCompanionNoteZone">专区 ›</text>
+      </view>
+
+      <view wx:if="{{companionNotes.locked}}" class="companion-course-locked">
+        本课有 {{companionNotes.count}} 篇陪伴手札，报名本期后可读
+      </view>
+
+      <view wx:elif="{{companionNotes.count === 1}}" class="companion-course-card app-card" bindtap="openCompanionNote" data-id="{{companionNotes.list[0].id}}">
+        <view class="companion-course-cover-wrap">
+          <image class="companion-course-cover" src="{{companionNotes.list[0].coverUrl}}" mode="aspectFill" />
+          <view wx:if="{{companionNotes.list[0].isNew}}" class="companion-course-new">新</view>
+        </view>
+        <view class="companion-course-body">
+          <text class="companion-course-note-title">{{companionNotes.list[0].title}}</text>
+          <text class="companion-course-meta">陪伴人 {{companionNotes.list[0].companionName}} · {{companionNotes.list[0].pageCount}} 页</text>
+          <text wx:if="{{companionNotes.list[0].summary}}" class="companion-course-summary">{{companionNotes.list[0].summary}}</text>
+          <view class="companion-course-stats"><text>☀ {{companionNotes.list[0].likeCount}}</text><text>◌ {{companionNotes.list[0].commentCount}}</text><text>{{companionNotes.list[0].readerCount}} 人读过</text></view>
+        </view>
+      </view>
+
+      <scroll-view wx:elif="{{companionNotes.count > 1}}" class="companion-course-shelf" scroll-x enable-flex>
+        <view wx:for="{{companionNotes.list}}" wx:key="id" class="companion-course-book" bindtap="openCompanionNote" data-id="{{item.id}}">
+          <view class="companion-course-book-cover-wrap">
+            <image class="companion-course-book-cover" src="{{item.coverUrl}}" mode="aspectFill" />
+            <view wx:if="{{item.isRead}}" class="companion-course-read-mark">✓</view>
+            <view wx:elif="{{item.isNew}}" class="companion-course-new-dot"></view>
+          </view>
+          <text class="companion-course-book-title">{{item.title}}</text>
+          <text class="companion-course-book-meta">{{item.companionName}} · {{item.pageCount}} 页</text>
+        </view>
+      </scroll-view>
+    </view>
+
     <view class="comments-section" wx:if="{{communityAccessState === 'enabled'}}">
       <view class="comments-header">
         <view class="comments-icon app-seal app-seal-dawn app-seal-sm">记</view>

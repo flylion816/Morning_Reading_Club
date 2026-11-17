@@ -40,7 +40,9 @@ const notificationSchema = new mongoose.Schema(
         'buddy_ended', // 读伴：这一段结束了
         'newcomer_shared', // 你分享的日签，有新书友留言了
         'newcomer_lead', // 新书友留言：通知接待组
-        'awareness_revisit' // 觉察日记：一周后的回访
+        'awareness_revisit', // 觉察日记：一周后的回访
+        'companion_note_reply', // 陪伴手札：回响收到回复
+        'companion_note_comment' // 陪伴手札：收到新回响
       ],
       required: true
     },
@@ -122,7 +124,11 @@ const notificationSchema = new mongoose.Schema(
       commentPreview: String,
       inviteId: String,
       // 觉察回访来信：只带记录 ID，笔记文字不进入通知
-      joyNoteId: String
+      joyNoteId: String,
+      companionNoteId: String,
+      companionNoteTitle: String,
+      companionNoteDate: String,
+      commentCount: Number
     },
     tenantId: {
       type: mongoose.Schema.Types.ObjectId,

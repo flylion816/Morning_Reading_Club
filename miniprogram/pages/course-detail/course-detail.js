@@ -27,6 +27,7 @@ const {
 const { getBrandName, getDefaultShareImage } = require('../../utils/brand');
 const { getMoodOption } = require('../../utils/mood');
 const buddyService = require('../../services/buddy.service');
+const companionNoteService = require('../../services/companion-note.service');
 const {
   REACTION_OPTIONS,
   markBuddyAvatars,
@@ -220,6 +221,7 @@ Page({
     showPageContent: false,
     canAccessCommunity: false,
     communityAccessState: 'locked',
+    companionNotes: { visible: false, loading: false, locked: false, count: 0, list: [] },
     hasUserCheckedIn: false,
     commentExpanded: {},
     commentLoading: {},
@@ -315,6 +317,7 @@ Page({
       paymentStatus: null,
       canAccessCommunity: false,
       communityAccessState: 'locked',
+      companionNotes: { visible: false, loading: false, locked: false, count: 0, list: [] },
       isCheckinDetailMode: !!options.checkinId,
       detailCheckin: null,
       posterGenerating: false,
@@ -2692,6 +2695,55 @@ Page({
     await this.loadFocusedCheckinDetail(course, periodId, access, detail);
   },
 
+  async loadCompanionNotes(sectionId) {
+    if (!sectionId || this.data.isCheckinDetailMode) return;
+    this.setData({ companionNotes: { ...this.data.companionNotes, loading: true } });
+    try {
+      const result = await companionNoteService.getSection(sectionId);
+      const payload = result && result.data && typeof result.data === 'object' && !Array.isArray(result.data)
+        ? result.data
+        : (result || {});
+      if (payload.locked === true) {
+        this.setData({
+          companionNotes: {
+            visible: Number(payload.count) > 0,
+            loading: false,
+            locked: true,
+            count: Number(payload.count) || 0,
+            list: []
+          }
+        });
+        return;
+      }
+      const list = companionNoteService.listFrom(payload)
+        .map(item => companionNoteService.normalizeNote(item))
+        .filter(item => item.id);
+      this.setData({
+        companionNotes: {
+          visible: list.length > 0,
+          loading: false,
+          locked: false,
+          count: list.length,
+          list
+        }
+      });
+    } catch (error) {
+      this.setData({ companionNotes: { visible: false, loading: false, locked: false, count: 0, list: [] } });
+    }
+  },
+
+  openCompanionNote(event) {
+    const noteId = event && event.currentTarget && event.currentTarget.dataset && event.currentTarget.dataset.id;
+    if (!noteId) return;
+    wx.navigateTo({ url: `/pages/companion-notes/detail/detail?id=${encodeURIComponent(noteId)}` });
+  },
+
+  openCompanionNoteZone() {
+    const periodId = this.data.periodId || '';
+    const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : '';
+    wx.navigateTo({ url: `/pages/companion-notes/list/list${query}` });
+  },
+
   async loadCourseDetail() {
     this.setData(
       this._hasRevealedContent
@@ -2761,6 +2813,7 @@ Page({
       });
       const communityEnabled = access.communityAccessState === 'enabled';
       this.setData({ lessonNumberingBase });
+      if (!this.data.isCheckinDetailMode) this.loadCompanionNotes(this.data.courseId);
 
       console.log('课程详情权限检查:', {
         courseId: this.data.courseId,

@@ -208,6 +208,19 @@ const adminUploadRateLimit = rateLimitMiddleware({
   failClosed: true
 });
 
+const companionNoteCommentRateLimit = rateLimitMiddleware({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  keyGenerator: req => {
+    const tenantId = getCurrentTenantId();
+    const subject = req.user?._id || req.user?.userId || req.ip;
+    return tenantId
+      ? `ratelimit:tenant:${tenantId}:companion-note-comment:${subject}`
+      : `ratelimit:companion-note-comment:${subject}`;
+  },
+  enabled: true
+});
+
 const externalIntegrationRateLimit = rateLimitMiddleware({
   windowMs: 60 * 1000,
   maxRequests: 30,
@@ -239,5 +252,6 @@ module.exports = {
   adminRefreshIpRateLimit,
   adminMaintenanceRateLimit,
   adminUploadRateLimit,
+  companionNoteCommentRateLimit,
   externalIntegrationRateLimit
 };

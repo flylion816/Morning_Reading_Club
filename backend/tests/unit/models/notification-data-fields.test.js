@@ -6,7 +6,8 @@ const Notification = require('../../../src/models/Notification');
 describe('Notification.data 字段清单', () => {
   const required = [
     'senderName', 'senderAvatar', 'periodId', 'sectionId', 'checkinId', 'commentId', 'targetPage',
-    'fromBuddy', 'sectionTitle', 'commentPreview', 'inviteId', 'joyNoteId', 'insightLabel'
+    'fromBuddy', 'sectionTitle', 'commentPreview', 'inviteId', 'joyNoteId', 'insightLabel',
+    'companionNoteId', 'companionNoteTitle', 'companionNoteDate', 'commentCount'
   ];
 
   it('来信页用到的字段都在清单里', () => {
@@ -17,7 +18,7 @@ describe('Notification.data 字段清单', () => {
 
   it('读伴相关的通知类型都已登记', () => {
     const types = Notification.schema.path('type').enumValues;
-    ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin', 'buddy_reaction', 'buddy_invite', 'buddy_invite_accepted', 'buddy_ended', 'newcomer_shared', 'awareness_revisit']
+    ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin', 'buddy_reaction', 'buddy_invite', 'buddy_invite_accepted', 'buddy_ended', 'newcomer_shared', 'awareness_revisit', 'companion_note_reply', 'companion_note_comment']
       .forEach(type => expect(types, type).to.include(type));
   });
 });

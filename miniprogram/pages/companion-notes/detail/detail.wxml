@@ -1,0 +1,146 @@
+<view class="companion-detail-page">
+  <view wx:if="{{loading}}" class="companion-loading">
+    <view class="app-skeleton companion-detail-skeleton"></view>
+    <view class="app-skeleton companion-detail-skeleton"></view>
+  </view>
+
+  <view wx:elif="{{gone}}" class="app-empty companion-detail-empty">
+    <view class="app-empty-art app-empty-art-book"></view>
+    <text class="app-empty-title">这篇手札已经找不到了</text>
+    <text class="app-empty-desc">它可能已经下线，回到专区看看其他陪伴的话。</text>
+    <text class="app-empty-action" bindtap="retry">重新打开</text>
+  </view>
+
+  <view wx:elif="{{error}}" class="app-error companion-detail-error">
+    <text class="app-error-title">手札没打开</text>
+    <text>稍后再试一次。</text>
+    <text class="app-empty-action" bindtap="retry">点这里重试</text>
+  </view>
+
+  <block wx:elif="{{note}}">
+    <view class="companion-detail-hero">
+      <view class="companion-detail-chip">{{note.periodName || '晨读营'}}{{note.lessonLabel ? ' · ' + note.lessonLabel : ''}}</view>
+      <view class="companion-book-stack">
+        <view class="companion-book-shadow shadow-a"></view>
+        <view class="companion-book-shadow shadow-b"></view>
+        <image class="companion-detail-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+      </view>
+      <text class="companion-detail-title">{{note.title}}</text>
+      <text class="companion-detail-meta">陪伴人 {{note.companionName}} · {{note.pageCount}} 页{{note.fileSize ? ' · ' + note.fileSize : ''}}</text>
+      <text wx:if="{{note.summary}}" class="companion-detail-summary">{{note.summary}}</text>
+    </view>
+
+    <view class="companion-detail-actions">
+      <view class="app-btn-primary companion-open-btn {{downloading || isOpening ? 'companion-btn-disabled' : ''}}" bindtap="openDocument">
+        <view class="app-icon app-icon-book"></view>
+        <text wx:if="{{downloading}}">正在取手札 {{downloadProgress}}%</text>
+        <text wx:elif="{{isOpening}}">正在打开…</text>
+        <text wx:else>翻开手札</text>
+      </view>
+      <view class="companion-like-btn {{note.isLiked ? 'companion-like-on' : ''}}" bindtap="toggleLike">
+        <view class="app-icon {{note.isLiked ? 'app-icon-sun' : 'app-icon-sunrise'}}"></view>
+        <text>{{note.isLiked ? '已点亮' : '点亮'}} {{note.likeCount}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{downloading}}" class="companion-download-card app-card">
+      <view class="companion-download-head">
+        <text>正在取手札</text>
+        <text class="app-num">{{downloadProgress}}%</text>
+      </view>
+      <view class="companion-download-bar"><view style="width: {{downloadProgress}}%"></view></view>
+      <view class="companion-download-foot">
+        <text wx:if="{{downloadTotal}}">{{downloadLoaded}} / {{downloadTotal}}</text>
+        <text wx:else>正在连接…</text>
+        <text class="companion-download-cancel" bindtap="cancelDownload">取消</text>
+      </view>
+    </view>
+    <view wx:if="{{downloadError}}" class="companion-download-error" bindtap="retryDownload">{{downloadError}}</view>
+
+    <view class="companion-proof">
+      <view class="companion-proof-avatars">
+        <view class="companion-proof-avatar" wx:for="{{note.recentLikes || []}}" wx:key="userId">
+          <user-avatar size="48" avatar-url="{{item.avatarUrl}}" avatar-text="{{item.avatarText}}" avatar-color="{{item.avatarColor}}" />
+        </view>
+      </view>
+      <text>{{note.likeCount}} 位点亮 · {{note.readerCount}} 位书友读过</text>
+    </view>
+
+    <view class="companion-comments-card app-card">
+      <view class="companion-comments-heading">
+        <text class="companion-comments-title">回响</text>
+        <text class="companion-comments-count">{{note.commentCount}} 条 · 精选在前</text>
+        <text class="companion-comments-write" bindtap="openCommentInput">写一句</text>
+      </view>
+
+      <view wx:if="{{comments.length}}">
+        <view
+          wx:for="{{comments}}"
+          wx:key="id"
+          id="companion-comment-{{item.id}}"
+          class="companion-comment {{item.isPinned ? 'companion-comment-pinned' : ''}}"
+          bindlongpress="handleCommentLongPress"
+          data-comment-id="{{item.id}}"
+        >
+          <user-avatar size="68" avatar-url="{{item.author.avatarUrl}}" avatar-text="{{item.author.avatarText}}" avatar-color="{{item.author.avatarColor}}" />
+          <view class="companion-comment-body">
+            <view class="companion-comment-head">
+              <text class="companion-comment-author">{{item.author.name}}</text>
+              <text wx:if="{{item.isPinned}}" class="companion-tag companion-tag-pinned">精选</text>
+              <text wx:if="{{item.isCompanion}}" class="companion-tag">陪伴人</text>
+              <text class="companion-comment-time">{{item.createdAt}}</text>
+            </view>
+            <text class="companion-comment-text">{{item.content}}</text>
+            <view class="companion-comment-actions">
+              <text class="companion-comment-action {{item.isLiked ? 'companion-action-liked' : ''}}" bindtap="toggleCommentLike" data-comment-id="{{item.id}}">♥ {{item.likeCount}}</text>
+              <text class="companion-comment-action" bindtap="openCommentInput" data-comment-id="{{item.id}}" data-user-id="{{item.userId}}" data-user-name="{{item.author.name}}">回复</text>
+            </view>
+            <view wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id" class="companion-reply" bindlongpress="handleCommentLongPress" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}">
+              <view class="companion-reply-head">
+                <text class="companion-reply-author">{{reply.author.name}}</text>
+                <text wx:if="{{reply.isCompanion}}" class="companion-tag">陪伴人</text>
+                <text class="companion-comment-time">{{reply.createdAt}}</text>
+              </view>
+              <text class="companion-reply-text">{{reply.content}}</text>
+              <view class="companion-comment-actions">
+                <text class="companion-comment-action {{reply.isLiked ? 'companion-action-liked' : ''}}" bindtap="toggleCommentLike" data-comment-id="{{item.id}}" data-reply-id="{{reply.id}}">♥ {{reply.likeCount}}</text>
+                <text class="companion-comment-action" bindtap="openCommentInput" data-comment-id="{{item.id}}" data-user-id="{{reply.userId}}" data-user-name="{{reply.author.name}}">回复</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="companion-comments-empty">还没有回响，读完以后留一句吧。</view>
+    </view>
+  </block>
+
+  <view wx:if="{{postReadPrompt}}" class="companion-sheet-mask" catchtap="closePostReadPrompt">
+    <view class="companion-post-read-sheet" catchtap="noop">
+      <text class="companion-sheet-title">读完了？</text>
+      <text class="companion-sheet-subtitle">留一句回响，{{note.companionName}}会看到；不想写也没关系</text>
+      <view class="companion-suggestions">
+        <text wx:for="{{promptSuggestions}}" wx:key="*this" class="companion-suggestion" data-text="{{item}}" bindtap="choosePrompt">{{item}}</text>
+      </view>
+      <view class="companion-sheet-actions">
+        <text class="companion-sheet-later" bindtap="closePostReadPrompt">下次再说</text>
+        <text class="companion-sheet-write" bindtap="choosePrompt" data-text="">留一句回响</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{composer.visible}}" class="companion-sheet-mask" catchtap="closeComposer">
+    <view class="companion-composer-sheet" catchtap="noop">
+      <view class="companion-composer-head">
+        <text class="companion-sheet-title">{{composer.commentId ? '回复回响' : '留一句回响'}}</text>
+        <text class="companion-sheet-close" bindtap="closeComposer">×</text>
+      </view>
+      <textarea class="companion-composer-input" value="{{composer.text}}" maxlength="500" auto-height placeholder="{{composer.placeholder}}" bindinput="onComposerInput" />
+      <view class="companion-composer-foot">
+        <text>{{composer.text.length}} / 500</text>
+        <text class="companion-composer-submit {{posting ? 'companion-btn-disabled' : ''}}" bindtap="submitComposer">{{posting ? '正在发出…' : '发出回响'}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+<app-dialog id="app-dialog" />
+<app-sheet id="app-sheet" />

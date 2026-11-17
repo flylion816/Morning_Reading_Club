@@ -26,6 +26,7 @@
     "echarts": "^6.1.0",
     "element-plus": "^2.11.8",
     "fflate": "0.8.3",
+    "pdfjs-dist": "^4.10.38",
     "pinia": "^3.0.3",
     "quill": "2.0.2",
     "vue": "^3.5.22",

@@ -1,0 +1,100 @@
+<view class="companion-list-page">
+  <view class="companion-list-hero">
+    <view class="app-seal app-seal-dawn">伴</view>
+    <view class="companion-list-heading">
+      <text class="companion-list-title">陪伴手札</text>
+      <text class="companion-list-subtitle">每一课之后，陪伴的人写下的话</text>
+    </view>
+  </view>
+
+  <scroll-view wx:if="{{periodTabs.length}}" class="companion-tabs" scroll-x enable-flex>
+    <view
+      wx:for="{{periodTabs}}"
+      wx:key="id"
+      class="companion-tab {{item.active ? 'companion-tab-active' : ''}}"
+      data-item="{{item}}"
+      bindtap="handleTabTap"
+    >{{item.name}}</view>
+  </scroll-view>
+
+  <view wx:if="{{loading && !notes.length}}" class="companion-loading">
+    <view class="app-skeleton companion-skeleton"></view>
+    <view class="app-skeleton companion-skeleton"></view>
+  </view>
+
+  <block wx:elif="{{!error}}">
+    <view wx:if="{{activeScope !== 'general' && (summary.total || trail.length)}}" class="companion-trail app-card">
+      <view class="companion-trail-head">
+        <text class="companion-section-title">手札足迹</text>
+        <text class="companion-trail-count">本期 {{summary.total}} 篇 · 你读了 {{summary.readCount}} 篇</text>
+      </view>
+      <scroll-view wx:if="{{trail.length}}" class="companion-trail-dots" scroll-x enable-flex>
+        <view wx:for="{{trail}}" wx:key="key" class="companion-trail-dot {{item.hasNotes ? (item.isRead ? 'trail-read' : 'trail-unread') : 'trail-none'}} {{item.isToday ? 'trail-today' : ''}}">
+          <view class="companion-trail-dot-mark">{{item.day}}</view>
+          <text>{{item.label}}</text>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view wx:if="{{latest && !latest.isRead}}" class="companion-latest app-card" bindtap="openLatest">
+      <view class="companion-latest-cover-wrap">
+        <image class="companion-latest-cover" src="{{latest.coverUrl}}" mode="aspectFill" />
+        <text class="companion-latest-badge">新到的手札</text>
+      </view>
+      <view class="companion-latest-body">
+        <text class="companion-latest-title">{{latest.title}}</text>
+        <text class="companion-latest-meta">{{latest.lessonLabel}} · {{latest.companionName}}</text>
+        <text class="companion-latest-cta">翻开 ›</text>
+      </view>
+    </view>
+
+    <view wx:if="{{groups.length}}" class="companion-groups">
+      <view wx:for="{{groups}}" wx:key="key" class="companion-group">
+        <view class="companion-group-heading">
+          <text class="companion-group-title">{{item.label}}</text>
+          <text class="companion-group-count">{{item.items.length}} 篇</text>
+        </view>
+        <view
+          wx:for="{{item.items}}"
+          wx:for-item="note"
+          wx:key="id"
+          class="companion-note-row app-card"
+          data-id="{{note.id}}"
+          bindtap="openNote"
+        >
+          <view class="companion-note-cover-wrap">
+            <image class="companion-note-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+            <view wx:if="{{note.isRead}}" class="companion-read-mark">✓</view>
+            <view wx:elif="{{note.isNew}}" class="companion-new-dot"></view>
+          </view>
+          <view class="companion-note-content">
+            <text class="companion-note-title">{{note.title}}</text>
+            <text class="companion-note-meta">{{note.metaLine}}</text>
+            <text wx:if="{{note.summary}}" class="companion-note-summary">{{note.summary}}</text>
+            <view class="companion-note-stats">
+              <text class="companion-stat dawn">☀ {{note.likeCount}}</text>
+              <text class="companion-stat">◌ {{note.commentCount}}</text>
+              <text class="companion-stat">{{note.readerCount}} 人读过</text>
+            </view>
+          </view>
+          <view class="app-icon app-icon-chevron companion-note-arrow"></view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{!loading}}" class="app-empty companion-empty">
+      <view class="app-empty-art app-empty-art-book"></view>
+      <text class="app-empty-title">这里还没有手札</text>
+      <text class="app-empty-desc">等一位陪伴的人写下今天的故事。</text>
+    </view>
+  </block>
+
+  <view wx:elif="{{error}}" class="app-error companion-error">
+    <text class="app-error-title">手札没加载出来</text>
+    <text>稍后再试一次，已经发布的内容会留在这里。</text>
+    <text class="app-empty-action" bindtap="retry">点这里重试</text>
+  </view>
+
+  <view wx:if="{{loadingMore && notes.length}}" class="companion-more">正在翻找…</view>
+  <view wx:if="{{!hasMore && notes.length}}" class="companion-end">没有更多手札了</view>
+</view>

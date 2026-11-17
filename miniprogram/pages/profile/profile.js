@@ -4,6 +4,7 @@ const appDialog = require('../../utils/dialog');
 const enrollmentService = require('../../services/enrollment.service');
 const checkinService = require('../../services/checkin.service');
 const notificationServiceModule = require('../../services/notification.service');
+const companionNoteService = require('../../services/companion-note.service');
 const constants = require('../../config/constants');
 const { hasPaidEnrollment, clearEnrollmentCache } = require('../../utils/period-access');
 const { decorateUserAvatar } = require('../../utils/avatar');
@@ -212,6 +213,7 @@ Page({
     canUsePaidFeatures: false,
     isAdmin: false,
     unreadNotificationCount: 0,
+    companionNoteReadCount: '',
     loading: false,
     themePrimaryColor: THEME_PRIMARY
   },
@@ -272,6 +274,7 @@ Page({
         canUsePaidFeatures,
         isAdmin: isAdminUser(userInfo)
       });
+      this._loadCompanionNoteSummary();
 
       if (canUsePaidFeatures) {
         this._loadCalendar();
@@ -364,6 +367,24 @@ Page({
     }
   },
 
+  async _loadCompanionNoteSummary() {
+    try {
+      const response = await companionNoteService.getList({ scope: 'all', page: 1, limit: 50 });
+      const payload = response && response.data && typeof response.data === 'object' && !Array.isArray(response.data)
+        ? response.data
+        : (response || {});
+      const overview = payload.overview && typeof payload.overview === 'object' ? payload.overview : payload;
+      const rows = companionNoteService.listFrom(payload);
+      const count = overview.readCount ?? overview.readTotal ?? overview.read;
+      const readCount = count !== undefined && count !== null
+        ? Number(count) || 0
+        : rows.filter(item => item && item.isRead === true).length;
+      this.setData({ companionNoteReadCount: readCount });
+    } catch (error) {
+      // 手札入口是备用入口，加载失败不影响「我的」页面的其他内容。
+    }
+  },
+
   // 获取/换绑手机号
   async handleGetPhoneNumber(e) {
     if (!this.data.canUsePaidFeatures) {
@@ -421,6 +442,10 @@ Page({
 
   goToJoyNotes() {
     wx.navigateTo({ url: '/pages/joy-notes/joy-notes' });
+  },
+
+  goToCompanionNotes() {
+    wx.navigateTo({ url: '/pages/companion-notes/list/list' });
   },
 
   goToSeenReceived() {

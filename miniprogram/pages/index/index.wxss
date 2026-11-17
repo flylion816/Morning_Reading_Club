@@ -944,6 +944,75 @@
 .activity-section,
 .insights-section,
 .requests-section,
+.companion-home-strip {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin: 12rpx 12rpx 0;
+  padding: 14rpx 16rpx;
+  border: 1rpx solid rgba(184, 99, 31, 0.22);
+  border-radius: 20rpx;
+  background: linear-gradient(110deg, #fff8ec 0%, #fdebd3 100%);
+  box-shadow: 0 6rpx 14rpx rgba(184, 99, 31, 0.08);
+}
+
+.companion-home-cover {
+  display: flex;
+  flex: 0 0 70rpx;
+  align-items: center;
+  justify-content: center;
+  width: 70rpx;
+  height: 88rpx;
+  border-radius: 6rpx;
+  background: var(--app-dawn-sky);
+  color: var(--app-dawn-deep);
+}
+
+.companion-home-cover .app-icon {
+  width: 38rpx;
+  height: 38rpx;
+}
+
+.companion-home-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3rpx;
+}
+
+.companion-home-kicker {
+  color: var(--app-dawn-ink);
+  font-size: 21rpx;
+  font-weight: 650;
+}
+
+.companion-home-title,
+.companion-home-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-home-title {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 27rpx;
+  font-weight: 650;
+}
+
+.companion-home-sub {
+  color: var(--app-text-soft);
+  font-size: 21rpx;
+}
+
+.companion-home-cta {
+  flex-shrink: 0;
+  color: var(--theme-primary);
+  font-size: 23rpx;
+  font-weight: 650;
+}
+
 .camp-corner-section {
   background:
     linear-gradient(180deg, rgba(255, 253, 248, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);

@@ -34,7 +34,9 @@ const FEATURE_TYPE_META = {
   buddy_invite: { icon: '伴', label: '读伴' },
   buddy_invite_accepted: { icon: '伴', label: '读伴' },
   buddy_ended: { icon: '伴', label: '读伴' },
-  newcomer_shared: { icon: '享', label: '来信' }
+  newcomer_shared: { icon: '享', label: '来信' },
+  companion_note_reply: { icon: '札', label: '陪伴手札' },
+  companion_note_comment: { icon: '札', label: '陪伴手札' }
 };
 
 function buildQueryString(params = {}) {
@@ -321,6 +323,15 @@ Page({
       return `pages/course-detail/course-detail?${query}`;
     }
 
+    if (['companion_note_reply', 'companion_note_comment'].includes(type) && notification?.data?.companionNoteId) {
+      const query = buildQueryString({
+        id: notification.data.companionNoteId,
+        commentId: notification.data.commentId,
+        replyId: notification.data.replyId
+      });
+      return `pages/companion-notes/detail/detail?${query}`;
+    }
+
     // 觉察回访：点开卡片去详情，输入框已经打开，直接写后来
     if (type === 'awareness_revisit' && notification?.data?.joyNoteId) {
       return `pages/joy-notes/detail/detail?id=${encodeURIComponent(notification.data.joyNoteId)}&focus=1`;
@@ -376,7 +387,9 @@ Page({
       permission_revoked: '查看申请状态',
       enrollment_result: '查看课程首页',
       payment_result: '查看课程首页',
-      insight_created: '查看小凡看见'
+      insight_created: '查看小凡看见',
+      companion_note_reply: '去看看',
+      companion_note_comment: '去看看'
     };
 
     return actionTextMap[notification?.type] || '';

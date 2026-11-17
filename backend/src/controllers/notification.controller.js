@@ -441,6 +441,14 @@ function buildNotificationUpsertQuery(userId, type, options = {}, data = {}) {
     alternatives.push({ "data.joyNoteId": data.joyNoteId.toString() });
   }
 
+  if (data.companionNoteId) {
+    const companionNoteQuery = { "data.companionNoteId": data.companionNoteId.toString() };
+    if (data.companionNoteDate) {
+      companionNoteQuery["data.companionNoteDate"] = data.companionNoteDate;
+    }
+    alternatives.push(companionNoteQuery);
+  }
+
   if (alternatives.length === 0) {
     return null;
   }

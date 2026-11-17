@@ -15,6 +15,7 @@ const presenceService = require('../../services/presence.service');
 const letterService = require('../../services/letter.service');
 const practiceService = require('../../services/practice.service');
 const buddyService = require('../../services/buddy.service');
+const companionNoteService = require('../../services/companion-note.service');
 const { getSolarTerm } = require('../../utils/solar-terms');
 const constants = require('../../config/constants');
 const request = require('../../utils/request');
@@ -562,6 +563,34 @@ function buildCampCornerCards({ letter, practice, buddy, seed = '' } = {}) {
 }
 
 // 期次第几天（以日期计，从 1 开始）；不在期次内或缺少日期时返回 null
+function buildCompanionNoteStrip(overview = {}) {
+  if (!overview || typeof overview !== 'object') return null;
+  const source = overview.overview && typeof overview.overview === 'object' ? overview.overview : overview;
+  const total = Number(source.totalCount ?? source.noteCount ?? source.total ?? 0) || 0;
+  if (total <= 0) return null;
+  const readCount = Number(source.readCount ?? source.readTotal ?? source.read ?? 0) || 0;
+  const latest = source.latestUnread || source.latest || source.latestNote || null;
+  if (latest && !latest.isRead) {
+    const note = companionNoteService.normalizeNote(latest);
+    return {
+      kind: 'companionNote',
+      noteId: note.id,
+      periodId: note.periodId,
+      title: note.title,
+      sub: [note.sectionTitle || (note.sectionDays && note.sectionDays.length ? `第 ${Math.min(...note.sectionDays)} 课` : ''), `陪伴人 ${note.companionName}`].filter(Boolean).join(' · '),
+      cta: '去读'
+    };
+  }
+  return {
+    kind: 'companionNote',
+    noteId: '',
+    periodId: source.periodId || '',
+    title: `本期 ${total} 篇手札，都读过了`,
+    sub: `你已经读了 ${Math.min(readCount, total)} 篇`,
+    cta: '去专区'
+  };
+}
+
 function getPeriodDayIndex(period, today = new Date()) {
   if (!period) return null;
   const start = getDateAtDayBoundary(period.startDate || period.startTime);
@@ -895,6 +924,7 @@ Page({
   buildWelcomeBackText,
   buildPresenceText,
   buildCampCornerCards,
+  buildCompanionNoteStrip,
   buildBuddyStrip,
   buildHomeLetterNote,
   usesSevenHabitsCourseTemplate,
@@ -937,6 +967,7 @@ Page({
     presenceText: '',
     campCornerCards: [],
     campCornerStatus: 'idle',
+    companionNoteStrip: null,
     homeLetterNote: null,
 
     // 今日课节
@@ -1274,6 +1305,7 @@ Page({
         presenceText: '',
         campCornerCards: [],
         campCornerStatus: 'idle',
+        companionNoteStrip: null,
         todaySection: null,
         todayCard: null,
         todayTaskEmptyState: null,
@@ -1850,10 +1882,10 @@ Page({
   // 同行感与营地角落：锦上添花，各自失败各自不显示，不阻塞首屏
   loadHomeExtras(periodId) {
     if (!periodId) {
-      this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle', buddyStrip: null });
+      this.setData({ presenceText: '', campCornerCards: [], campCornerStatus: 'idle', companionNoteStrip: null, buddyStrip: null });
       return;
     }
-    this.setData({ campCornerCards: buildCampCornerCards(), campCornerStatus: 'loading' });
+    this.setData({ campCornerCards: buildCampCornerCards(), campCornerStatus: 'loading', companionNoteStrip: null });
     const safe = (fn) => {
       try {
         return Promise.resolve(fn()).catch(() => null);
@@ -1880,6 +1912,10 @@ Page({
         campCornerCards: cards,
         campCornerStatus: letter || practice || buddy ? 'ready' : 'error'
       });
+    });
+    safe(() => companionNoteService.getOverview(periodId)).then(companionOverview => {
+      if (this.data.currentPeriod && (this.data.currentPeriod._id || this.data.currentPeriod.id) !== periodId) return;
+      this.setData({ companionNoteStrip: buildCompanionNoteStrip(companionOverview) });
     });
   },
 
@@ -1933,6 +1969,18 @@ Page({
 
   closeQuickNote() {
     this.setData({ quickNoteVisible: false });
+  },
+
+  handleCompanionNoteStripTap(e) {
+    const dataset = e.currentTarget && e.currentTarget.dataset || {};
+    const noteId = dataset.noteId || '';
+    const periodId = dataset.periodId || this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    if (noteId) {
+      wx.navigateTo({ url: `/pages/companion-notes/detail/detail?id=${encodeURIComponent(noteId)}` });
+      return;
+    }
+    const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : '';
+    wx.navigateTo({ url: `/pages/companion-notes/list/list${query}` });
   },
 
   handleCampCornerTap(e) {
