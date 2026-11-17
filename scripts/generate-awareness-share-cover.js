@@ -44,7 +44,8 @@ async function main() {
   fs.mkdirSync(outputDir, { recursive: true });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="750" height="600" viewBox="0 0 750 600">${shared}${content}</svg>`;
   const file = path.join(outputDir, 'awareness-share-cover.png');
-  await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toFile(file);
+  // 近无损调色板：体积不到原来的一半（开发者工具「代码质量」要求图片和音频合计不超过 200K）
+  await sharp(Buffer.from(svg)).png({ palette: true, quality: 95, colors: 256, effort: 10, dither: 1, compressionLevel: 9 }).toFile(file);
   console.log(path.relative(process.cwd(), file));
 }
 
