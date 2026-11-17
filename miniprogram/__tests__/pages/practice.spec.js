@@ -129,4 +129,20 @@ describe('practice page', () => {
     expect(page.data.history).toHaveLength(1);
     expect(page.data.history[0].text).toBe('A');
   });
+
+  it('建议是整句话：有说明文字；样式允许换行，不再套单行短标签的药丸形状', () => {
+    const read = name => require('fs').readFileSync(require('path').join(__dirname, '../../pages/practice', name), 'utf8');
+    const wxml = read('practice.wxml');
+    const wxss = read('practice.wxss');
+    // 有建议时才出现说明，和建议列表同时显示
+    expect(wxml).toMatch(/<text class="suggest-tip" wx:if="\{\{suggestions\.length\}\}">/);
+    expect(wxml).toMatch(/<view class="suggest-list" wx:if="\{\{suggestions\.length\}\}">/);
+    // .app-chip 是单行短标签（没有上下留白、圆角 999rpx、加粗），建议要覆盖掉
+    const suggest = wxss.match(/\.suggest \{([^}]*)\}/)[1];
+    expect(suggest).toMatch(/padding:\s*\d+rpx/);
+    expect(suggest).toMatch(/border-radius:\s*\d+rpx/);
+    expect(suggest).not.toMatch(/999/);
+    expect(suggest).toMatch(/font-weight:\s*400/);
+    expect(suggest).toMatch(/max-width:\s*100%/);
+  });
 });

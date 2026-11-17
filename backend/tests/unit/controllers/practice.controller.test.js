@@ -116,11 +116,33 @@ describe('Practice Controller', () => {
     expect(filter.day).to.deep.equal({ $gte: 8, $lte: 10 });
   });
 
-  it('建议不会超过可保存的 30 字上限', async () => {
+  it('建议不会超过可保存的 30 字上限，超长时在最后一个分句处收住，不在句子中间硬切', async () => {
     PracticeStub.findOne.returns(chain(null));
     SectionStub.find.returns(chain([{ day: 8, action: '这是一条超过三十个字的实修建议，用来验证前后端边界一致并且不会提交失败' }]));
     await controller.getCurrent(req, res);
-    expect(body().suggestions[0]).to.have.length(30);
+    expect(body().suggestions[0]).to.equal('这是一条超过三十个字的实修建议');
+  });
+
+  it('没有合适的分句点（没有，或太靠前）时才硬切到 30 字', () => {
+    expect(controller.firstSentence('字'.repeat(45))).to.have.length(30);
+    expect(controller.firstSentence(`好的，${'字'.repeat(40)}`)).to.have.length(30);
+    // 刚好 30 字的不动
+    expect(controller.firstSentence('字'.repeat(30))).to.have.length(30);
+    // 短句、带标签的照旧
+    expect(controller.firstSentence('<p>先听完再开口。然后复述</p>')).to.equal('先听完再开口');
+  });
+
+  it('只差全角半角的两句算同一句，只留先出现的；真正不同的照常保留', async () => {
+    PracticeStub.findOne.returns(chain(null));
+    SectionStub.find.returns(
+      chain([
+        { day: 8, action: '把自己的感触记录在下面的打卡日记上(觉察日记)，在早上的晨读时分享给书友' },
+        { day: 9, action: '把自己的感触记录在下面的打卡日记上（觉察日记），在早上的晨读时分享给书友' },
+        { day: 10, action: '先听完再开口' }
+      ])
+    );
+    await controller.getCurrent(req, res);
+    expect(body().suggestions).to.deep.equal(['把自己的感触记录在下面的打卡日记上(觉察日记)', '先听完再开口']);
   });
 
   it('setCurrent 并发撞唯一索引时重读后更新', async () => {
