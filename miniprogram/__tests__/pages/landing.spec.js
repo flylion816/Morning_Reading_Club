@@ -2,7 +2,7 @@ jest.mock('../../services/newcomer-lead.service', () => ({
   getLanding: jest.fn(),
   submit: jest.fn()
 }));
-jest.mock('../../services/daily-card-share.service', () => ({
+jest.mock('../../pages/landing/daily-card-share.service', () => ({
   resolve: jest.fn()
 }));
 jest.mock('../../utils/request', () => ({ post: jest.fn() }));
@@ -47,7 +47,7 @@ describe('landing page', () => {
     });
     global.getApp = jest.fn(() => ({ globalData: { userInfo: null } }));
     service = require('../../services/newcomer-lead.service');
-    shareService = require('../../services/daily-card-share.service');
+    shareService = require('../../pages/landing/daily-card-share.service');
     request = require('../../utils/request');
     silentLogin = require('../../pages/landing/silent-login');
     service.getLanding.mockReset();
