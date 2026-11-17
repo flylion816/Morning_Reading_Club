@@ -1,9 +1,9 @@
 const newcomerLeadService = require('../../services/newcomer-lead.service');
-const dailyCardShareService = require('../../services/daily-card-share.service');
+const dailyCardShareService = require('./daily-card-share.service');
 const request = require('../../utils/request');
 const { ensureLoggedIn } = require('./silent-login');
 const { getBrandName } = require('../../utils/brand');
-const { getDailyCardShareCover } = require('../../utils/daily-card-cover');
+const { getDailyCardShareCover } = require('./daily-card-cover');
 const {
   REASON_OPTIONS,
   CONSENT_VERSION,

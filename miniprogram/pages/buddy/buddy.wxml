@@ -297,21 +297,40 @@
 
   <!-- 送一句 -->
   <view wx:if="{{giftSheetVisible}}" class="buddy-mask" catchtap="onCloseGift">
-    <view class="buddy-sheet" catchtap="stopPropagation">
+    <view class="buddy-sheet {{giftKeyboardHeight ? 'buddy-sheet-kb' : ''}}" style="margin-bottom: {{giftKeyboardHeight}}px;" catchtap="stopPropagation">
       <view class="buddy-sheet-grip"></view>
       <text class="buddy-sheet-title">送 {{buddy.nickname}} 一句</text>
-      <text class="buddy-sheet-sub">选一句送给 TA，每天一句，TA 当天在这里看到。</text>
+      <text class="buddy-sheet-sub">选一句，或者自己写一句。每天一句，TA 当天在这里看到。</text>
       <view
         wx:for="{{giftOptions}}"
         wx:key="key"
-        class="buddy-opt {{giftKey === item.key ? 'buddy-opt-on' : ''}}"
+        class="buddy-opt {{!giftCustom && !giftFocus && giftKey === item.key ? 'buddy-opt-on' : ''}}"
         data-key="{{item.key}}"
         bindtap="onSelectGift"
       >
         <view class="buddy-opt-radio"></view>
         <text>{{item.text}}</text>
       </view>
-      <view class="app-btn-primary buddy-btn buddy-sheet-btn" bindtap="onSendGift">送出</view>
+      <view class="buddy-own {{giftFocus || giftCustom ? 'buddy-own-on' : ''}}">
+        <textarea
+          class="buddy-own-input"
+          value="{{giftText}}"
+          maxlength="{{giftTextMax}}"
+          placeholder="自己写一句…"
+          placeholder-class="buddy-own-ph"
+          adjust-position="{{false}}"
+          hold-keyboard
+          show-confirm-bar="{{false}}"
+          disable-default-padding
+          bindinput="onGiftInput"
+          bindfocus="onGiftFocus"
+          bindblur="onGiftBlur"
+          bindkeyboardheightchange="onGiftKeyboardHeight"
+        />
+        <text class="buddy-own-count">{{giftCount}}/{{giftTextMax}}</text>
+      </view>
+      <text class="buddy-own-tip">自己写的话会先过一道内容检查。</text>
+      <view class="app-btn-primary buddy-btn buddy-sheet-btn" bindtap="onSendGift">{{busy ? '正在送出…' : '送出'}}</view>
     </view>
   </view>
 </view>

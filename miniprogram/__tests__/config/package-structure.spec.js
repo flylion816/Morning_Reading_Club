@@ -261,6 +261,68 @@ describe('miniprogram package structure', () => {
     expect(fs.existsSync(path.join(miniprogramRoot, 'utils/silent-login.js'))).toBe(false);
   });
 
+  test('keeps daily-card helpers inside the subpackages that use them', () => {
+    // 日签分享码、封面只有 daily-card 和 landing 两个分包在用：各放各的分包，主包不留只给分包用的文件
+    ['services/daily-card-share.service.js', 'utils/daily-card-cover.js'].forEach(relativePath => {
+      expect(fs.existsSync(path.join(miniprogramRoot, relativePath))).toBe(false);
+    });
+    [
+      'pages/daily-card/daily-card-share.service.js',
+      'pages/daily-card/daily-card-cover.js',
+      'pages/landing/daily-card-share.service.js',
+      'pages/landing/daily-card-cover.js'
+    ].forEach(relativePath => {
+      expect(fs.existsSync(path.join(miniprogramRoot, relativePath))).toBe(true);
+    });
+    // 分包之间不能互相引用，封面只好两边各放一份，内容必须一致
+    const read = relativePath => fs.readFileSync(path.join(miniprogramRoot, relativePath), 'utf8');
+    expect(read('pages/landing/daily-card-cover.js')).toBe(read('pages/daily-card/daily-card-cover.js'));
+  });
+
+  test('keeps bundled images and audio within the 200K code-quality budget', () => {
+    // 开发者工具「代码质量」：代码包里的图片和音频合计不超过 200K。按 project.config.json 的 packOptions.ignore 过滤后统计
+    const projectRoot = path.resolve(miniprogramRoot, '..');
+    const projectConfig = JSON.parse(fs.readFileSync(path.join(projectRoot, 'project.config.json'), 'utf8'));
+    const ignores = ((projectConfig.packOptions && projectConfig.packOptions.ignore) || []).map(item => ({
+      type: item.type,
+      value: String(item.value).replace(/^\/+|\/+$/g, '')
+    }));
+    const isIgnored = relativePath =>
+      ignores.some(item =>
+        item.type === 'folder'
+          ? relativePath === item.value || relativePath.startsWith(`${item.value}/`)
+          : relativePath === item.value
+      );
+    const mediaPattern = /\.(png|jpe?g|gif|webp|svg|mp3|m4a|aac|wav)$/i;
+    const skipDirs = new Set(['node_modules', 'miniprogram_npm', '__tests__']);
+    const files = [];
+    const walk = dir => {
+      fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (!skipDirs.has(entry.name)) walk(full);
+        } else if (mediaPattern.test(entry.name)) {
+          const relativePath = path.relative(projectRoot, full).split(path.sep).join('/');
+          if (!isIgnored(relativePath)) files.push({ relativePath, size: fs.statSync(full).size });
+        }
+      });
+    };
+    walk(miniprogramRoot);
+
+    const total = files.reduce((sum, file) => sum + file.size, 0);
+    const budget = 200 * 1024;
+    if (total > budget) {
+      const biggest = files
+        .sort((a, b) => b.size - a.size)
+        .slice(0, 5)
+        .map(file => `${file.relativePath}（${(file.size / 1024).toFixed(1)}K）`);
+      throw new Error(
+        `代码包里的图片和音频合计 ${(total / 1024).toFixed(1)}K，超过 200K。最大的几个：${biggest.join('、')}。先压缩，或者用 packOptions.ignore 排除不用的。`
+      );
+    }
+    expect(total).toBeLessThanOrEqual(budget);
+  });
+
   test('declares low-frequency pages in their owning subpackages', () => {
     expect(appJson.subPackages).toEqual(expectedSubPackages);
 

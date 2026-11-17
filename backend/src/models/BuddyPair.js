@@ -30,13 +30,14 @@ const BuddyPairSchema = new mongoose.Schema(
         at: { type: Date, default: Date.now }
       }
     ],
-    // 送一句：只存预设短句的 key，每人每天一条
+    // 送一句：每人每天一条。预设短句只存 key；自己写的话 key 为 custom，文字放在 text
     gifts: [
       {
         _id: false,
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         dayKey: { type: String },
         key: { type: String },
+        text: { type: String, maxlength: 60 },
         at: { type: Date, default: Date.now }
       }
     ],

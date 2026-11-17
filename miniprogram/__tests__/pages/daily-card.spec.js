@@ -1,4 +1,4 @@
-jest.mock('../../services/daily-card-share.service', () => ({ create: jest.fn() }));
+jest.mock('../../pages/daily-card/daily-card-share.service', () => ({ create: jest.fn() }));
 
 let pageConfig;
 let page;
@@ -32,7 +32,7 @@ describe('daily-card page', () => {
     });
     require('../../pages/daily-card/daily-card.js');
     page = makePage();
-    shareService = require('../../services/daily-card-share.service');
+    shareService = require('../../pages/daily-card/daily-card-share.service');
     shareService.create.mockReset();
     shareService.create.mockResolvedValue({ code: 'abcd2345', imageBase64: 'cG5n' });
     wx.env = { USER_DATA_PATH: '/tmp' };
@@ -188,6 +188,27 @@ describe('daily-card page', () => {
     shareService.create.mockRejectedValue(new Error('offline'));
     await expect(page.generatePoster()).rejects.toThrow('offline');
     expect(global.__mockCanvasImageSrcs).not.toContain('/assets/images/mini-program-code.jpg');
+  });
+
+  test('分享码接口被拒时保留真实原因，保存按钮提示分享码暂不可用且不写相册', async () => {
+    page.onLoad({ quote: '完整原文' });
+    shareService.create.mockRejectedValue({ statusCode: 404, code: 404, message: '请求的资源不存在' });
+    await expect(page.generatePoster()).rejects.toMatchObject({
+      code: 'DAILY_CARD_CODE_UNAVAILABLE',
+      message: expect.stringContaining('HTTP 404')
+    });
+    await expect(page.generatePoster()).rejects.toThrow('请求的资源不存在');
+
+    await page.handleSave();
+    expect(wx.showToast).toHaveBeenCalledWith({ title: '分享码暂不可用，请稍后再试', icon: 'none' });
+    expect(wx.saveImageToPhotosAlbum).not.toHaveBeenCalled();
+    expect(page.data.generating).toBe(false);
+  });
+
+  test('请求没发出去（断网、超时）时也能从错误里看出原因', async () => {
+    page.onLoad({ quote: '完整原文' });
+    shareService.create.mockRejectedValue({ errMsg: 'request:fail timeout' });
+    await expect(page.generatePoster()).rejects.toThrow('request:fail timeout');
   });
 
   test('export draws the mini-program code and tolerates a missing image', async () => {

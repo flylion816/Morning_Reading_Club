@@ -157,11 +157,6 @@ page {
   box-sizing: border-box;
 }
 
-/* 键盘盖住固定页面时，给嵌套滚动区留出真实可滚动空间 */
-.aw-keyboard-space {
-  flex-shrink: 0;
-}
-
 .aw-step {
   padding: 28rpx 44rpx 40rpx;
 }
@@ -591,9 +586,9 @@ page {
   padding: 16rpx 44rpx calc(28rpx + env(safe-area-inset-bottom));
 }
 
-/* 键盘打开时，底部导航会落在键盘后面，交给输入区滚动 */
-.aw-nav-keyboard {
-  display: none;
+/* 「择」写了内容后，底部只剩「完成」一个按钮：居中放，不被两端对齐推到左边。这一页还空着时仍是「先出去」在左、按钮在右 */
+.aw-nav-center {
+  justify-content: center;
 }
 
 /* 收 */

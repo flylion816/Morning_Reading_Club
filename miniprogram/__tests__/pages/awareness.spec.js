@@ -141,45 +141,62 @@ describe('觉察静室', () => {
     });
   });
 
-  describe('键盘避让', () => {
-    test('输入时按键盘高度滚动当前输入区，键盘收起后清理状态', () => {
-      const listeners = [];
-      const originalQuery = wx.createSelectorQuery;
-      wx.onKeyboardHeightChange = jest.fn(handler => listeners.push(handler));
+  // 键盘避让交给系统：上一版页面自己监听键盘高度、撑高滚动区、手动滚 scroll-view，真机上键盘弹不起来。
+  // 这里守住当前约定；真要改回自己接管，得先在真机上验证键盘能弹起来，再同步改这里。
+  describe('键盘避让（交给系统）', () => {
+    const readPage = name =>
+      require('fs').readFileSync(require('path').join(__dirname, '../../pages/joy-notes/awareness', name), 'utf8');
+
+    test('三个写作输入框都交给系统顶起页面，点空白处能收起键盘', () => {
+      const wxml = readPage('awareness.wxml');
+      const boxes = wxml.match(/<rich-input[\s\S]*?\/>/g) || [];
+      expect(boxes).toHaveLength(3);
+      boxes.forEach(tag => {
+        expect(tag).toContain('adjust-position="{{true}}"');
+        expect(tag).toContain('hold-keyboard="{{false}}"');
+        expect(tag).toMatch(/cursor-spacing="\{\{\d+\}\}"/);
+      });
+      // 页面里的其他输入框也都没有关掉系统避让
+      expect(wxml).not.toContain('adjust-position="{{false}}"');
+    });
+
+    test('页面不接管键盘：挂载、写作、卸载全程不监听键盘高度，也没有手动滚动用的状态', () => {
+      wx.onKeyboardHeightChange = jest.fn();
       wx.offKeyboardHeightChange = jest.fn();
-      wx.hideKeyboard = jest.fn();
-      const query = {
-        select: jest.fn(() => query),
-        scrollOffset: jest.fn(() => query),
-        boundingClientRect: jest.fn(() => query),
-        exec: jest.fn(callback => {
-          query.callback = callback;
-        })
-      };
-      wx.createSelectorQuery = jest.fn(() => query);
       try {
         mount();
         page.begin();
-        page.onInputFocus({ currentTarget: { dataset: { target: 'aw-see-input' } } });
-        listeners[0]({ height: 300, duration: 100 });
-        expect(page.data.keyboardHeight).toBe(300);
-        jest.advanceTimersByTime(100);
-        query.callback([
-          { scrollTop: 100 },
-          { top: 100, bottom: 700 },
-          { top: 500, bottom: 900 }
-        ]);
-        expect(page.data.scrollTop).toBe(628);
-        listeners[0]({ height: 0 });
-        expect(page.data).toMatchObject({ keyboardHeight: 0, keyboardTarget: '' });
         page.onUnload();
-        expect(wx.offKeyboardHeightChange).toHaveBeenCalledTimes(1);
+        expect(wx.onKeyboardHeightChange).not.toHaveBeenCalled();
+        expect(page.data).not.toHaveProperty('keyboardHeight');
+        expect(page.data).not.toHaveProperty('scrollTop');
+        expect(readPage('awareness.wxml')).not.toMatch(/scroll-top=|aw-keyboard-space/);
       } finally {
-        wx.createSelectorQuery = originalQuery;
         delete wx.onKeyboardHeightChange;
         delete wx.offKeyboardHeightChange;
-        delete wx.hideKeyboard;
       }
+    });
+  });
+
+  describe('择：底部按钮', () => {
+    const readPage = name =>
+      require('fs').readFileSync(require('path').join(__dirname, '../../pages/joy-notes/awareness', name), 'utf8');
+
+    test('写了内容、底部只剩「完成」时居中；这一页还空着时仍是「先出去」在左、按钮在右', () => {
+      const wxml = readPage('awareness.wxml');
+      const wxss = readPage('awareness.wxss');
+      // 只有「择」且已经有内容时才加居中；其他步骤、以及空页面都保持两端对齐
+      expect(wxml).toContain(`class="aw-nav {{step === 'choose' && hasContent ? 'aw-nav-center' : ''}}"`);
+      expect(wxss).toMatch(/\.aw-nav\s*\{[^}]*justify-content:\s*space-between/);
+      expect(wxss).toMatch(/\.aw-nav-center\s*\{[^}]*justify-content:\s*center/);
+    });
+
+    test('底部栏里的元素：有内容时只有「完成」，没内容时才多出「先出去」', () => {
+      const nav = readPage('awareness.wxml').split('class="aw-nav ')[1];
+      // 「先出去」只在没有内容时出现，所以有内容时「完成」是栏里唯一的元素，才需要自己居中
+      expect(nav).toMatch(/step === 'choose' && !hasContent\}\}" class="aw-skip" bindtap="close"/);
+      // 「跳过这一问」在「择」不出现
+      expect(nav).toMatch(/class="aw-skip" bindtap="skip" wx:if="\{\{step !== 'choose'\}\}"/);
     });
   });
 

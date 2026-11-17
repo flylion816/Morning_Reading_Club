@@ -37,7 +37,8 @@ describe('buddy.controller', () => {
           badRequest: m => ({ code: 400, message: m }),
           forbidden: m => ({ code: 403, message: m }),
           notFound: m => ({ code: 404, message: m }),
-          serverError: m => ({ code: 500, message: m })
+          serverError: m => ({ code: 500, message: m }),
+          serviceUnavailable: m => ({ code: 503, message: m })
         }
       },
       '../utils/logger': { error: () => {}, warn: () => {} },
@@ -104,10 +105,32 @@ describe('buddy.controller', () => {
   it('giftBuddy 把 messageKey 交给服务层，并把送的话写进通知', async () => {
     service.gift.resolves({ buddyUserId: 'u1', senderName: '小二', giftText: '不用赶，我在这儿。', state: { state: 'paired' } });
     await controller.giftBuddy({ ...req, body: { messageKey: 'noRush' } }, res);
-    expect(service.gift.calledWith('u2', 'p1', 'noRush')).to.equal(true);
+    expect(service.gift.calledWith('u2', 'p1', { messageKey: 'noRush', text: undefined })).to.equal(true);
     const args = createNotification.firstCall.args;
     expect(args[1]).to.equal('buddy_gift');
     expect(args[3]).to.equal('小二：「不用赶，我在这儿。」');
+  });
+
+  it('giftBuddy 自己写的话：text 原样交给服务层，通知里就是这句话', async () => {
+    service.gift.resolves({ buddyUserId: 'u1', senderName: '小二', giftText: '我也读了', state: { state: 'paired' } });
+    await controller.giftBuddy({ ...req, body: { text: '我也读了' } }, res);
+    expect(service.gift.calledWith('u2', 'p1', { messageKey: undefined, text: '我也读了' })).to.equal(true);
+    expect(createNotification.firstCall.args[3]).to.equal('小二：「我也读了」');
+  });
+
+  it('giftBuddy 内容没通过返回 400、检查服务不可用返回 503，都不发通知', async () => {
+    service.gift.rejects(Object.assign(new Error('这句话暂时送不出去，换一句试试'), { isBuddyError: true, kind: 'badRequest', status: 400 }));
+    await controller.giftBuddy({ ...req, body: { text: '不行的话' } }, res);
+    expect(res.status.firstCall.args[0]).to.equal(400);
+    expect(res.json.firstCall.args[0]).to.deep.equal({ code: 400, message: '这句话暂时送不出去，换一句试试' });
+
+    service.gift.rejects(
+      Object.assign(new Error('暂时没法送自己写的话，先选一句预设的吧'), { isBuddyError: true, kind: 'serviceUnavailable', status: 503 })
+    );
+    await controller.giftBuddy({ ...req, body: { text: '想说的话' } }, res);
+    expect(res.status.secondCall.args[0]).to.equal(503);
+    expect(res.json.secondCall.args[0]).to.deep.equal({ code: 503, message: '暂时没法送自己写的话，先选一句预设的吧' });
+    expect(createNotification.called).to.equal(false);
   });
 
   it('getBuddySouvenir 和 rematchBuddy 返回服务层结果', async () => {

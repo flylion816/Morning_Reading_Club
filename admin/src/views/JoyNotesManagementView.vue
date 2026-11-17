@@ -43,6 +43,19 @@
       </el-card>
 
       <el-card>
+        <template #header>
+          <div class="card-header">
+            <span>觉察日记列表 (共 {{ total }} 条)</span>
+            <el-pagination
+              :current-page="page"
+              :page-size="pageSize"
+              :total="total"
+              style="margin-left: auto"
+              @current-change="handlePageChange"
+            />
+          </div>
+        </template>
+
         <el-table v-loading="loading" :data="notes" stripe style="width: 100%" empty-text="还没有记录">
           <el-table-column label="书友" min-width="130">
             <template #default="{ row }">
@@ -95,15 +108,6 @@
             </template>
           </el-table-column>
         </el-table>
-        <div class="pager">
-          <el-pagination
-            v-model:current-page="page"
-            :page-size="pageSize"
-            :total="total"
-            layout="prev, pager, next"
-            @current-change="loadNotes"
-          />
-        </div>
       </el-card>
 
       <!-- 详情弹窗 -->
@@ -291,6 +295,11 @@ function handleFilterChange() {
   loadNotes();
 }
 
+function handlePageChange(next: number) {
+  page.value = next;
+  loadNotes();
+}
+
 function resetFilters() {
   filters.value = { userSearch: '', kind: '', periodId: '', q: '' };
   dateRange.value = null;
@@ -392,10 +401,11 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.pager {
-  margin-top: 16px;
+.card-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .detail-meta {

@@ -8,6 +8,11 @@
  * 页面要把收到的 text / html 原样放回 value / html，组件靠这个分辨「自己发出去的」和「外部改的」。
  *
  * mode：auto（默认，点 Aa 升级）/ rich（一直是富文本）/ plain（只有普通输入框）
+ *
+ * 键盘（只管普通输入框，编辑器的键盘由系统管）：
+ *   adjust-position  默认 false：半屏条自己贴着键盘走，不要系统再上推。整页输入的页面设成 true，交给系统把输入框顶到键盘上方
+ *   cursor-spacing   输入框底边与键盘的距离（px），只有 adjust-position 为 true 时才有用
+ *   hold-keyboard    默认 true：点输入框以外的地方键盘不收（半屏条按钮不会让键盘闪一下）。整页输入的页面设成 false，点空白处才收得起键盘
  */
 const { THEME_PRIMARY } = require('../../utils/theme');
 const rich = require('../../utils/rich-note');
@@ -36,7 +41,11 @@ Component({
     height: { type: Number, value: 320 },
     focus: { type: Boolean, value: false },
     mode: { type: String, value: 'auto' },
-    disabled: { type: Boolean, value: false }
+    disabled: { type: Boolean, value: false },
+    // 键盘避让：默认值保持半屏条原来的行为
+    adjustPosition: { type: Boolean, value: false },
+    cursorSpacing: { type: Number, value: 120 },
+    holdKeyboard: { type: Boolean, value: true }
   },
 
   data: {

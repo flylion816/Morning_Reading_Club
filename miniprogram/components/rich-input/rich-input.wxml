@@ -35,11 +35,11 @@
       maxlength="{{maxlength}}"
       focus="{{focus}}"
       disabled="{{disabled}}"
-      adjust-position="{{false}}"
+      adjust-position="{{adjustPosition}}"
       show-confirm-bar="{{false}}"
-      hold-keyboard
+      hold-keyboard="{{holdKeyboard}}"
       disable-default-padding
-      cursor-spacing="120"
+      cursor-spacing="{{cursorSpacing}}"
       placeholder="{{placeholder}}"
       placeholder-class="ri-ph"
       bindinput="onTextInput"

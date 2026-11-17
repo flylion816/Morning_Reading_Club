@@ -39,4 +39,10 @@ describe('buddy.service', () => {
     ]);
     expect(request.get).toHaveBeenCalledWith('/buddies/period/p1/souvenir', {}, { suppressError: true });
   });
+
+  test('送自己写的话走同一个接口，只带 text，并自己处理错误提示', async () => {
+    request.post.mockResolvedValue({});
+    await buddyService.giftCustom('p1', '今天也在读');
+    expect(request.post).toHaveBeenCalledWith('/buddies/period/p1/gift', { text: '今天也在读' }, { suppressError: true });
+  });
 });

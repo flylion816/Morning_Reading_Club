@@ -4,10 +4,10 @@ const {
   getMiniProgramCode
 } = require('../../utils/brand');
 const { getThemePrimaryColor } = require('../../utils/theme');
-const { getDailyCardShareCover } = require('../../utils/daily-card-cover');
+const { getDailyCardShareCover } = require('./daily-card-cover');
 const appDialog = require('../../utils/dialog');
 const { buildLandingPath, buildLandingQuery, parseLandingOptions } = require('../../utils/landing-share');
-const dailyCardShareService = require('../../services/daily-card-share.service');
+const dailyCardShareService = require('./daily-card-share.service');
 const {
   FONTS,
   CARD_WIDTH,
@@ -35,6 +35,17 @@ function safeDecode(value) {
   } catch (error) {
     return String(value);
   }
+}
+
+// 分享码失败的真实原因：请求被拒是 { statusCode, message }，请求没发出去是 { errMsg }。
+// 控制台里能直接分清是接口没发布（404）、微信出码失败（503）还是网络不通。
+function describeCodeFailure(error) {
+  const parts = [];
+  if (error && error.statusCode) parts.push(`HTTP ${error.statusCode}`);
+  else if (error && error.code) parts.push(`code ${error.code}`);
+  const reason = error && (error.message || error.errMsg);
+  if (reason) parts.push(String(reason));
+  return `分享码暂不可用：${parts.join(' ') || '未知原因'}`;
 }
 
 function fontOf(el) {
@@ -349,7 +360,7 @@ Page({
       const codePath = await this.fetchInviteCodePath(snapshot, identity);
       return await loadCanvasImage(canvas, [codePath]);
     } catch (error) {
-      const codeError = error instanceof Error ? error : new Error('分享码暂不可用');
+      const codeError = error instanceof Error ? error : new Error(describeCodeFailure(error));
       codeError.code = 'DAILY_CARD_CODE_UNAVAILABLE';
       throw codeError;
     }

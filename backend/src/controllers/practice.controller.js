@@ -48,12 +48,30 @@ function stripTags(text) {
     .trim();
 }
 
+// 超过上限时不在句子中间硬切：退到上限内最后一个分句处（逗号、顿号、冒号），读起来是完整的一小句。
+// 分句点太靠前（不足 8 个字）或根本没有，才硬切到上限
+const MIN_CLAUSE_LENGTH = 8;
+const CLAUSE_MARKS = ['，', ',', '、', '：', ':'];
+
+function clipSentence(sentence) {
+  const chars = Array.from(sentence);
+  if (chars.length <= MAX_SUGGESTION_LENGTH) return sentence;
+  const head = chars.slice(0, MAX_SUGGESTION_LENGTH).join('');
+  const cut = Math.max(...CLAUSE_MARKS.map(mark => head.lastIndexOf(mark)));
+  return cut >= MIN_CLAUSE_LENGTH ? head.slice(0, cut).trim() : head;
+}
+
 function firstSentence(text) {
   const clean = stripTags(text);
   if (!clean) return '';
   const match = clean.match(/^[^。！？!?；;\n]+/);
   const sentence = (match ? match[0] : clean).trim();
-  return sentence.length > MAX_SUGGESTION_LENGTH ? sentence.slice(0, MAX_SUGGESTION_LENGTH) : sentence;
+  return clipSentence(sentence);
+}
+
+// 去重用的键：全角半角、空白不同的两句算同一句（课程里同样的话常常一天用全角括号、一天用半角）
+function compareKey(text) {
+  return String(text).normalize('NFKC').replace(/\s+/g, '').toLowerCase();
 }
 
 async function buildSuggestions(periodId, weekIndex, todayDay) {
@@ -72,8 +90,9 @@ async function buildSuggestions(periodId, weekIndex, todayDay) {
     const result = [];
     for (const section of sections || []) {
       const sentence = firstSentence(section.action);
-      if (!sentence || seen.has(sentence)) continue;
-      seen.add(sentence);
+      const key = compareKey(sentence);
+      if (!sentence || seen.has(key)) continue;
+      seen.add(key);
       result.push(sentence);
       if (result.length >= MAX_SUGGESTIONS) break;
     }

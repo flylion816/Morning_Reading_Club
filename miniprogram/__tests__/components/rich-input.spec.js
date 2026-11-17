@@ -5,7 +5,7 @@ describe('随喜 / 觉察的输入框（普通输入框 + 可升级的富文本�
   const make = (properties = {}) => {
     const instance = {
       ...config.methods,
-      properties: { value: '', html: '', placeholder: '', maxlength: 3000, height: 320, focus: false, mode: 'auto', disabled: false, ...properties },
+      properties: { value: '', html: '', placeholder: '', maxlength: 3000, height: 320, focus: false, mode: 'auto', disabled: false, adjustPosition: false, cursorSpacing: 120, holdKeyboard: true, ...properties },
       data: JSON.parse(JSON.stringify(config.data)),
       events: [],
       setData(update, callback) {
@@ -88,6 +88,25 @@ describe('随喜 / 觉察的输入框（普通输入框 + 可升级的富文本�
       instance.onBlur();
       instance.onKeyboardHeight({ detail: { height: 300 } });
       expect(instance.events).toEqual([['focus', undefined], ['blur', undefined], ['keyboardheight', { height: 300 }]]);
+    });
+  });
+
+  describe('键盘避让可配置', () => {
+    test('默认值保持半屏条原来的行为：系统不上推页面、点别处键盘不收、光标距离 120', () => {
+      expect(config.properties.adjustPosition).toEqual({ type: Boolean, value: false });
+      expect(config.properties.holdKeyboard).toEqual({ type: Boolean, value: true });
+      expect(config.properties.cursorSpacing).toEqual({ type: Number, value: 120 });
+    });
+
+    test('模板把三个属性交给普通输入框，而不是写死', () => {
+      const wxml = require('fs').readFileSync(
+        require('path').join(__dirname, '../../components/rich-input/rich-input.wxml'),
+        'utf8'
+      );
+      const textarea = wxml.match(/<textarea[\s\S]*?\/>/)[0];
+      expect(textarea).toContain('adjust-position="{{adjustPosition}}"');
+      expect(textarea).toContain('hold-keyboard="{{holdKeyboard}}"');
+      expect(textarea).toContain('cursor-spacing="{{cursorSpacing}}"');
     });
   });
 

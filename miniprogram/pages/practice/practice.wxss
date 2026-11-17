@@ -8,7 +8,9 @@
 .card { padding: 36rpx 32rpx; margin-bottom: 24rpx; display: flex; flex-direction: column; gap: 24rpx; }
 .guide { font-family: var(--app-font-serif); font-size: 32rpx; color: var(--app-text); line-height: 1.6; }
 .suggest-list { display: flex; flex-direction: column; gap: 16rpx; }
-.suggest { align-self: flex-start; }
+/* 建议是一整句话，不是短标签：允许换行，圆角收小，上下留白，不加粗（.app-chip 是给单行短标签用的） */
+.suggest-tip { font-size: 24rpx; color: var(--app-text-soft); line-height: 1.5; }
+.suggest { align-self: flex-start; max-width: 100%; box-sizing: border-box; padding: 16rpx 24rpx; border-radius: 28rpx; font-size: 26rpx; font-weight: 400; line-height: 1.5; text-align: left; }
 .draft, .note { height: 88rpx; padding: 0 24rpx; border-radius: var(--app-radius-md); background: var(--app-bg, #faf6ec); font-size: 28rpx; color: var(--app-text); }
 .ph { color: var(--app-text-soft); }
 .confirm { margin-top: 8rpx; }

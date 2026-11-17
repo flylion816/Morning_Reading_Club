@@ -24,6 +24,7 @@
   <block wx:else>
     <view wx:if="{{!practice || editing}}" class="app-card card">
       <text class="guide">给这一周定一个小到一定做得到的行动</text>
+      <text class="suggest-tip" wx:if="{{suggestions.length}}">从本周的课程里摘了几句，点一下就能填进去，也可以自己写。</text>
       <view class="suggest-list" wx:if="{{suggestions.length}}">
         <text class="app-chip suggest" wx:for="{{suggestions}}" wx:key="*this" data-text="{{item}}" bindtap="onPickSuggestion">{{item}}</text>
       </view>
