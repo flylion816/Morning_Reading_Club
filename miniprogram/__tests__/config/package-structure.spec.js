@@ -156,6 +156,11 @@ const expectedSubPackages = [
     pages: ['seen-received']
   },
   {
+    name: 'companion-notes',
+    root: 'pages/companion-notes',
+    pages: ['list/list', 'detail/detail']
+  },
+  {
     name: 'practice',
     root: 'pages/practice',
     pages: ['practice']

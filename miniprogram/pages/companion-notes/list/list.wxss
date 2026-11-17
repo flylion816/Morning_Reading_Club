@@ -1,0 +1,333 @@
+/* Version 3 dawn: companion notes use the shared paper, dawn and ink tokens. */
+.companion-list-page {
+  min-height: 100vh;
+  padding: 38rpx 28rpx calc(92rpx + env(safe-area-inset-bottom));
+  background: var(--app-page-bg);
+  box-sizing: border-box;
+}
+
+.companion-list-hero {
+  display: flex;
+  align-items: center;
+  gap: 22rpx;
+  padding: 8rpx 10rpx 30rpx;
+}
+
+.companion-list-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.companion-list-title,
+.companion-section-title,
+.companion-latest-title,
+.companion-note-title,
+.companion-group-title {
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-weight: 650;
+}
+
+.companion-list-title {
+  font-size: 38rpx;
+}
+
+.companion-list-subtitle,
+.companion-latest-meta,
+.companion-note-meta,
+.companion-note-summary,
+.companion-trail-count,
+.companion-group-count,
+.companion-more,
+.companion-end {
+  color: var(--app-text-muted);
+  font-size: 23rpx;
+}
+
+.companion-tabs {
+  display: flex;
+  width: 100%;
+  margin: 0 0 22rpx;
+  white-space: nowrap;
+}
+
+.companion-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 52rpx;
+  margin-right: 12rpx;
+  padding: 0 22rpx;
+  border: 1rpx solid var(--app-border);
+  border-radius: 999rpx;
+  background: rgba(255, 253, 248, 0.72);
+  color: var(--app-text-soft);
+  font-size: 23rpx;
+}
+
+.companion-tab-active {
+  border-color: var(--app-dawn-deep);
+  background: var(--app-dawn-ink);
+  color: #fff;
+  font-weight: 650;
+}
+
+.companion-trail {
+  padding: 22rpx 24rpx 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.companion-trail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.companion-section-title {
+  font-size: 30rpx;
+}
+
+.companion-trail-dots {
+  display: flex;
+  gap: 22rpx;
+  margin-top: 20rpx;
+  white-space: nowrap;
+}
+
+.companion-trail-dot {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58rpx;
+  color: var(--app-text-muted);
+  font-size: 19rpx;
+}
+
+.companion-trail-dot-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46rpx;
+  height: 46rpx;
+  margin-bottom: 6rpx;
+  border: 2rpx dashed var(--app-rule);
+  border-radius: 50%;
+  color: var(--app-text-muted);
+  font-family: var(--app-font-num);
+  font-size: 21rpx;
+}
+
+.companion-trail-dot.trail-read .companion-trail-dot-mark {
+  border-style: solid;
+  border-color: var(--app-dawn);
+  background: var(--app-dawn);
+  color: #fff;
+}
+
+.companion-trail-dot.trail-unread .companion-trail-dot-mark {
+  border-style: solid;
+  border-color: var(--app-dawn);
+  color: var(--app-dawn-ink);
+}
+
+.companion-trail-dot.trail-today .companion-trail-dot-mark {
+  box-shadow: 0 0 0 4rpx var(--app-paper), 0 0 0 6rpx var(--theme-primary);
+}
+
+.companion-latest {
+  overflow: hidden;
+  margin-bottom: 24rpx;
+}
+
+.companion-latest-cover-wrap {
+  position: relative;
+  width: 100%;
+  height: 220rpx;
+  overflow: hidden;
+  background: var(--app-dawn-sky);
+}
+
+.companion-latest-cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.companion-latest-badge {
+  position: absolute;
+  left: 22rpx;
+  top: 20rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+  background: rgba(43, 38, 34, 0.52);
+  color: #fff;
+  font-size: 21rpx;
+}
+
+.companion-latest-body {
+  position: relative;
+  padding: 20rpx 24rpx 22rpx;
+}
+
+.companion-latest-title {
+  display: block;
+  font-size: 34rpx;
+}
+
+.companion-latest-meta {
+  display: block;
+  margin-top: 5rpx;
+}
+
+.companion-latest-cta {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 999rpx;
+  background: var(--theme-primary);
+  color: #fff;
+  font-size: 23rpx;
+  font-weight: 650;
+}
+
+.companion-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 26rpx;
+}
+
+.companion-group-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+  margin: 0 10rpx 12rpx;
+}
+
+.companion-group-title {
+  font-size: 29rpx;
+}
+
+.companion-note-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  min-height: 164rpx;
+  margin-bottom: 12rpx;
+  padding: 16rpx 18rpx;
+}
+
+.companion-note-cover-wrap {
+  position: relative;
+  flex: 0 0 98rpx;
+  width: 98rpx;
+  height: 132rpx;
+  overflow: hidden;
+  border-radius: 6rpx;
+  background: var(--app-dawn-sky);
+}
+
+.companion-note-cover {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.companion-new-dot {
+  position: absolute;
+  right: 6rpx;
+  top: 6rpx;
+  width: 18rpx;
+  height: 18rpx;
+  border: 3rpx solid var(--app-paper);
+  border-radius: 50%;
+  background: var(--app-dawn);
+}
+
+.companion-read-mark {
+  position: absolute;
+  right: 6rpx;
+  bottom: 6rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30rpx;
+  height: 30rpx;
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.92);
+  color: var(--app-success);
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.companion-note-content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5rpx;
+}
+
+.companion-note-title {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 29rpx;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.companion-note-meta,
+.companion-note-summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-note-summary {
+  color: var(--app-text-soft);
+  line-height: 1.45;
+}
+
+.companion-note-stats {
+  display: flex;
+  gap: 18rpx;
+  margin-top: 4rpx;
+  color: var(--app-text-muted);
+  font-size: 20rpx;
+}
+
+.companion-stat.dawn {
+  color: var(--app-dawn-deep);
+}
+
+.companion-note-arrow {
+  flex: 0 0 26rpx;
+  width: 26rpx;
+  height: 26rpx;
+  color: var(--app-text-muted);
+}
+
+.companion-loading {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.companion-skeleton {
+  height: 220rpx;
+}
+
+.companion-empty,
+.companion-error {
+  margin-top: 30rpx;
+}
+
+.companion-more,
+.companion-end {
+  padding: 26rpx 0;
+  text-align: center;
+}

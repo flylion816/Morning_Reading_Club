@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const BUDDY_TYPES = ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin', 'buddy_reaction', 'buddy_invite', 'buddy_invite_accepted', 'buddy_ended'];
 // 读伴一天里的小动静（轻拍、击掌、送一句、写打卡）：同一位读伴同一天合并成一条
 const BUDDY_DAY_TYPES = ['buddy_nudge', 'buddy_highfive', 'buddy_gift', 'buddy_checkin'];
-const NEEDS_REPLY_TYPES = ['request_created', 'comment_received', 'awareness_revisit'];
+const NEEDS_REPLY_TYPES = ['request_created', 'comment_received', 'awareness_revisit', 'companion_note_reply'];
 
 const dataOf = n => (n && n.data) || {};
 const nameOf = n => (n && n.senderName) || '一位书友';
@@ -139,6 +139,13 @@ function describe(n) {
     case 'awareness_revisit':
       // 来自一周前的自己：来信本身不带笔记文字，「择」由页面凭记录 ID 单独读取
       return { ...seal('觉', '来自一周前的自己：你想试试的那件事，后来怎么样了？'), warm: true };
+    case 'companion_note_reply':
+      return person('札', ' 回复了你的手札回响', data.commentPreview || (data.companionNoteTitle ? `《${data.companionNoteTitle}》` : ''));
+    case 'companion_note_comment': {
+      const title = data.companionNoteTitle ? `《${data.companionNoteTitle}》` : '你的陪伴手札';
+      const count = Number(data.commentCount || data.count || 1) || 1;
+      return seal('札', `${title}今天有 ${count} 条新回响`);
+    }
     case 'enrollment_result':
     case 'payment_result':
       return seal('营', n.content || n.title || '');

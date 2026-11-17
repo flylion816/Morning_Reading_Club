@@ -1,0 +1,6 @@
+{
+  "navigationBarTitleText": "陪伴手札",
+  "usingComponents": {
+    "user-avatar": "/components/user-avatar/user-avatar"
+  }
+}

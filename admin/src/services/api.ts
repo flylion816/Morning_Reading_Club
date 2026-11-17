@@ -474,6 +474,55 @@ export const joyNoteApi = {
   deleteNote: (id: string) => apiClient.delete(`/joy-notes/admin/${id}`)
 };
 
+export type CompanionNoteUploadProgress = (loaded: number, total: number) => void;
+
+// 陪伴手札 API：PDF 和页图上传都走后台专用接口，不能复用公开上传目录。
+export const companionNotesApi = {
+  getNotes: (params?: any) => apiClient.get('/admin/companion-notes', { params }),
+  getNote: (id: string) => apiClient.get(`/admin/companion-notes/${id}`),
+  createNote: (data: any) => apiClient.post('/admin/companion-notes', data),
+  updateNote: (id: string, data: any) => apiClient.put(`/admin/companion-notes/${id}`, data),
+  deleteNote: (id: string) => apiClient.delete(`/admin/companion-notes/${id}`),
+  publishNote: (id: string) => apiClient.post(`/admin/companion-notes/${id}/publish`),
+  unpublishNote: (id: string) => apiClient.post(`/admin/companion-notes/${id}/unpublish`),
+  sortNotes: (items: Array<{ id: string; sortOrder: number }>) =>
+    apiClient.put('/admin/companion-notes/sort', { items }),
+  previewNote: (id: string) => apiClient.get(`/admin/companion-notes/${id}/preview`),
+  uploadFile: (file: File, cover?: File | Blob | null, onUploadProgress?: CompanionNoteUploadProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (cover) formData.append('cover', cover, cover instanceof File ? cover.name : 'cover.jpg');
+    return apiClient.post('/admin/companion-notes/files', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+      onUploadProgress: event => onUploadProgress?.(event.loaded, event.total || file.size)
+    });
+  },
+  uploadPage: (
+    fileToken: string,
+    pageNo: number,
+    page: File | Blob,
+    onUploadProgress?: CompanionNoteUploadProgress
+  ) => {
+    const formData = new FormData();
+    formData.append('pageNo', String(pageNo));
+    formData.append('page', page, `page-${pageNo}.jpg`);
+    return apiClient.post(`/admin/companion-notes/files/${fileToken}/pages`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000,
+      onUploadProgress: event => onUploadProgress?.(event.loaded, event.total || page.size)
+    });
+  },
+  getComments: (id: string, params?: any) =>
+    apiClient.get(`/admin/companion-notes/${id}/comments`, { params }),
+  updateComment: (commentId: string, data: { isPinned?: boolean; hidden?: boolean }) =>
+    apiClient.patch(`/admin/companion-notes/comments/${commentId}`, data),
+  deleteComment: (commentId: string) =>
+    apiClient.delete(`/admin/companion-notes/comments/${commentId}`),
+  deleteReply: (commentId: string, replyId: string) =>
+    apiClient.delete(`/admin/companion-notes/comments/${commentId}/replies/${replyId}`)
+};
+
 export const imprintApi = {
   getImprints: (params?: any) => apiClient.get('/imprints/admin/list', { params }),
   getImprintDetail: (id: string) => apiClient.get(`/imprints/${id}`),

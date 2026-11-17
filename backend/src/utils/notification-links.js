@@ -12,6 +12,19 @@ function buildCourseDetailTargetPage(sectionId, params = {}) {
   return `pages/course-detail/course-detail?${search.toString()}`;
 }
 
+function buildCompanionNoteTargetPage(noteId, params = {}) {
+  const search = new URLSearchParams();
+  search.set('id', String(noteId));
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  });
+
+  return `pages/companion-notes/detail/detail?${search.toString()}`;
+}
+
 function buildProfileOthersTargetPage(userId, params = {}) {
   const search = new URLSearchParams();
 
@@ -103,6 +116,7 @@ function truncateText(text, maxLength = 24) {
 }
 
 module.exports = {
+  buildCompanionNoteTargetPage,
   buildCourseDetailTargetPage,
   buildInsightApprovalTargetPage,
   buildInsightDetailTargetPage,

@@ -41,6 +41,9 @@ const wechatRoutes = require('./routes/wechat.routes');
 const imprintRoutes = require('./routes/imprint.routes');
 const { router: communityActivityRoutes, adminRouter: communityActivityAdminRoutes } = require('./routes/communityActivity.routes');
 const { adminRouter: activityCouponAdminRoutes, userRouter: activityCouponUserRoutes } = require('./routes/activityCoupon.routes');
+const companionNoteRoutes = require('./routes/companion-note.routes');
+const companionNoteAdminRoutes = require('./routes/companion-note-admin.routes');
+const { startCompanionNoteCleanup } = require('./services/companion-note-files.service');
 
 const app = express();
 
@@ -113,6 +116,8 @@ app.use('/api/v1/ranking', rankingRoutes);
 app.use('/api/v1/stats', statsRoutes);
 app.use('/api/v1/audit-logs', auditRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/companion-notes', companionNoteRoutes);
+app.use('/api/v1/admin/companion-notes', companionNoteAdminRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/monitoring', monitoringRoutes);
 app.use('/api/v1/backup', backupRoutes);
@@ -145,5 +150,9 @@ app.use('/api/v1/daily-card-shares', require('./routes/dailyCardShare.routes'));
 
 app.use(notFoundHandler);
 app.use(errorHandler);
+
+if (process.env.NODE_ENV === 'production' || process.env.ENABLE_COMPANION_NOTE_CLEANUP === 'true') {
+  startCompanionNoteCleanup();
+}
 
 module.exports = app;

@@ -52,6 +52,9 @@ page {
   --app-dawn-ink: #8a4b12;
   --app-dawn-sky: #fbe3c3;
   --app-dawn-glow: rgba(255, 196, 120, 0.55);
+  --app-companion: #3d6fa6;
+  --app-companion-soft: #ecf1f6;
+  --app-companion-ink: #325b88;
   --app-font-serif: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Source Han Serif SC', serif;
   --app-font-num: Georgia, 'Times New Roman', serif;
   --app-ease: cubic-bezier(0.2, 0.8, 0.2, 1);

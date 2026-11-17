@@ -166,6 +166,17 @@
         </view>
       </view>
 
+      <view class="settings-cell" bindtap="goToCompanionNotes">
+        <view class="cell-left">
+          <view class="app-icon app-icon-book ln-ico"></view>
+          <text class="cell-label">陪伴手札</text>
+        </view>
+        <view class="cell-right">
+          <text class="cell-value">读过 {{companionNoteReadCount === '' ? '—' : companionNoteReadCount}} 篇</text>
+          <view class="app-icon app-icon-chevron cell-arrow"></view>
+        </view>
+      </view>
+
       <view wx:if="{{canUsePaidFeatures}}" class="settings-cell" bindtap="goToMyHighlights">
         <view class="cell-left">
           <view class="app-icon app-icon-book ln-ico"></view>
