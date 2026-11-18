@@ -132,8 +132,21 @@ function serializeUser(user) {
   };
 }
 
-function userIsCompanion(userId, companionUserId) {
-  return Boolean(companionUserId && sameId(userId, companionUserId));
+// 一篇手札可以写给多位书友：companionUserIds 是全集，companionUserId 是第一位（旧字段兼容）
+function companionIdSet(note) {
+  const ids = [note.companionUserId, ...(note.companionUserIds || [])].filter(Boolean);
+  const seen = new Set();
+  return ids.filter(id => {
+    const key = idString(id);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function userIsCompanion(userId, note) {
+  if (!userId || !note) return false;
+  return companionIdSet(note).some(id => sameId(userId, id));
 }
 
 function serializeComment(comment, note, currentUserId, { includeHidden = false } = {}) {
@@ -149,7 +162,7 @@ function serializeComment(comment, note, currentUserId, { includeHidden = false 
         replyToUser: serializeUser(reply.replyToUserId),
         replyToUserId: reply.replyToUserId?._id || reply.replyToUserId || null,
         isLiked: (likes || []).some(like => sameId(like.userId?._id || like.userId, currentUserId)),
-        isCompanion: userIsCompanion(reply.userId?._id || reply.userId, note.companionUserId)
+        isCompanion: userIsCompanion(reply.userId?._id || reply.userId, note)
       };
     });
 
@@ -158,7 +171,7 @@ function serializeComment(comment, note, currentUserId, { includeHidden = false 
     user: serializeUser(source.userId),
     userId: source.userId?._id || source.userId,
     isLiked: (source.likes || []).some(like => sameId(like.userId?._id || like.userId, currentUserId)),
-    isCompanion: userIsCompanion(source.userId?._id || source.userId, note.companionUserId),
+    isCompanion: userIsCompanion(source.userId?._id || source.userId, note),
     likes: undefined,
     replies
   };
@@ -223,6 +236,17 @@ async function loadAdminNoteForComment(req) {
   return comment ? findAdminNote(comment.noteId) : null;
 }
 
+async function ensureCompanionUsers(companionUserIds = []) {
+  if (!companionUserIds.length) return [];
+  const invalid = companionUserIds.some(id => !isValidObjectId(id));
+  if (invalid) throw badRequest('陪伴人账号不正确');
+  const users = await User.find({ _id: { $in: companionUserIds } })
+    .select('_id nickname avatar avatarUrl openid')
+    .lean();
+  if (users.length !== companionUserIds.length) throw notFound('陪伴人账号不存在');
+  return users;
+}
+
 async function ensureCompanionUser(companionUserId) {
   if (!companionUserId) return null;
   if (!isValidObjectId(companionUserId)) throw badRequest('陪伴人账号不正确');
@@ -234,7 +258,10 @@ async function ensureCompanionUser(companionUserId) {
 async function validateNoteBinding(periodId, sectionIds) {
   if (sectionIds.length && !periodId) throw badRequest('绑定课次时必须选择期次');
   if (!periodId) return null;
-  if (!isValidObjectId(periodId)) throw badRequest('期次参数不正确');
+  if (!isValidObjectId(periodId)) {
+    logger.warn('陪伴手札保存被拒：periodId 非法', { periodId, sectionIds });
+    throw badRequest('期次参数不正确');
+  }
 
   const period = await Period.findById(periodId).select('_id tenantId').lean();
   if (!period) throw notFound('期次不存在');
@@ -264,9 +291,22 @@ function validateMetadata(body) {
   if (Array.from(companionName).length < 1 || Array.from(companionName).length > 20) {
     throw badRequest('陪伴人名称长度必须为1–20字');
   }
-  const periodId = body.periodId === undefined || body.periodId === '' ? null : String(body.periodId);
+  const periodId = body.periodId === undefined || body.periodId === '' || body.periodId === null
+    ? null
+    : String(body.periodId);
   const sectionIds = parseIdArray(body.sectionIds);
-  return { title, summary, companionName, companionUserId: body.companionUserId || null, periodId, sectionIds };
+  // 支持一位或多位陪伴书友：companionUserIds 是全集，companionUserId 保持第一位兼容旧逻辑
+  const companionUserIds = parseIdArray(body.companionUserIds);
+  const companionUserId = body.companionUserId || companionUserIds[0] || null;
+  return {
+    title,
+    summary,
+    companionName,
+    companionUserId,
+    companionUserIds: companionUserId ? [companionUserId, ...companionUserIds.filter(id => id !== companionUserId)] : [],
+    periodId,
+    sectionIds
+  };
 }
 
 async function refreshNoteCommentCount(noteId) {
@@ -313,9 +353,10 @@ async function notifySafely(req, payload) {
 }
 
 async function notifyCompanionComment(req, note, actorUser, commentId, replyId, content) {
-  const { companionUserId } = note;
   const actorId = actorUser?._id || actorUser;
-  if (!companionUserId || sameId(companionUserId, actorId)) return;
+  // 所有陪伴书友都收到回响来信（不含触发人自己）
+  const recipients = companionIdSet(note).filter(id => !sameId(id, actorId));
+  if (!recipients.length) return;
 
   const { dateKey, start, end } = shanghaiDayRange();
   const count = await CompanionNoteComment.countDocuments({
@@ -324,8 +365,8 @@ async function notifyCompanionComment(req, note, actorUser, commentId, replyId, 
     hidden: { $ne: true }
   });
   const title = `《${truncateText(note.title, 30)}》今天有 ${count} 条新回响`;
-  await notifySafely(req, {
-    recipientUserId: companionUserId,
+  await Promise.all(recipients.map(recipientUserId => notifySafely(req, {
+    recipientUserId,
     notificationType: 'companion_note_comment',
     title,
     content: truncateText(content, 80),
@@ -343,7 +384,7 @@ async function notifyCompanionComment(req, note, actorUser, commentId, replyId, 
     sourceType: 'companion_note_comment',
     sourceId: commentId,
     upsertExistingNotification: true
-  });
+  })));
 }
 
 async function notifyReply(req, note, comment, reply, actorUser, recipientUserId) {
@@ -481,7 +522,8 @@ async function getPeriodOverview(req, res, next) {
       return res.status(403).json(errors.forbidden('当前期次未支付，暂不可查看陪伴手札'));
     }
 
-    const notes = await CompanionNote.find({ ...PUBLISHED_NOTE_FILTER, periodId })
+    // 「不绑定期次」的全营手札对本期学员同样可见：和专区列表的可见范围保持一致
+    const notes = await CompanionNote.find({ ...PUBLISHED_NOTE_FILTER, $or: [{ periodId }, { periodId: null }] })
       .sort({ sortOrder: 1, publishedAt: -1, createdAt: -1 })
       .lean();
     const list = await decorateNotes(notes, userId);
@@ -536,7 +578,7 @@ async function getDetail(req, res, next) {
       ...serializeUser(item.userId),
       userId: item.userId?._id || item.userId,
       createdAt: item.createdAt,
-      isCompanion: userIsCompanion(item.userId?._id || item.userId, note.companionUserId)
+      isCompanion: userIsCompanion(item.userId?._id || item.userId, note)
     }));
     return res.json(success(toPublicNote(note, {
       sectionLabels: sectionLabelsForNote(note, sections),
@@ -555,7 +597,14 @@ async function issueFileTicket(req, res, next) {
     const note = await loadAccessibleNote(req.params.id, userId);
     if (!note) return res.status(404).json(errors.notFound('陪伴手札不存在'));
     const tenantId = getCurrentTenantId();
-    if (!tenantId) return res.status(503).json(errors.serviceUnavailable('暂时无法签发下载链接'));
+    if (!tenantId) {
+      logger.warn('陪伴手札下载链接签发失败：缺少租户上下文', {
+        noteId: req.params.id,
+        hasUser: Boolean(req.user),
+        path: req.path
+      });
+      return res.status(503).json(errors.serviceUnavailable('暂时无法签发下载链接'));
+    }
     const expiresAt = Date.now() + 10 * 60 * 1000;
     const token = encodeTicket({
       noteId: note._id.toString(),
@@ -589,11 +638,15 @@ async function downloadFile(req, res, next) {
         : (await getCommunityAccessiblePeriodIds(payload.userId)).length > 0;
       if (!allowed) return res.status(403).json(errors.forbidden('当前没有阅读权限'));
       const pdfPath = await resolvePdfPath(payload.tenantId, note.file.dir);
+      // 打开 PDF 时显示后台上传的原始文件名，而不是服务器上的随机令牌名
+      const downloadName = (note.file && note.file.originalName
+        ? path.basename(String(note.file.originalName))
+        : `${note.title || 'companion-note'}.pdf`).replace(/["\r\n]/g, '').slice(0, 180) || 'companion-note.pdf';
       res.set({
         'Content-Type': 'application/pdf',
         'Cache-Control': 'private, max-age=600',
         'X-Content-Type-Options': 'nosniff',
-        'Content-Disposition': 'inline'
+        'Content-Disposition': `inline; filename="companion-note.pdf"; filename*=UTF-8''${encodeURIComponent(downloadName)}`
       });
       return res.sendFile(pdfPath, { acceptRanges: true, cacheControl: false, dotfiles: 'deny' }, error => {
         if (error && !res.headersSent) next(error);
@@ -976,7 +1029,7 @@ async function saveAdminNote(req, res, next) {
   try {
     const metadata = validateMetadata(req.body);
     await validateNoteBinding(metadata.periodId, metadata.sectionIds);
-    await ensureCompanionUser(metadata.companionUserId);
+    await ensureCompanionUsers(metadata.companionUserIds);
 
     const note = req.params.id ? await findAdminNote(req.params.id) : null;
     if (req.params.id && !note) return res.status(404).json(errors.notFound('陪伴手札不存在'));

@@ -573,7 +573,8 @@
 
       <view wx:elif="{{companionNotes.count === 1}}" class="companion-course-card app-card" bindtap="openCompanionNote" data-id="{{companionNotes.list[0].id}}">
         <view class="companion-course-cover-wrap">
-          <image class="companion-course-cover" src="{{companionNotes.list[0].coverUrl}}" mode="aspectFill" />
+          <image wx:if="{{companionNotes.list[0].coverUrl}}" class="companion-course-cover" src="{{companionNotes.list[0].coverUrl}}" mode="aspectFill" />
+          <view wx:else class="companion-course-cover companion-course-cover-fallback"><view class="app-seal app-seal-dawn">伴</view></view>
           <view wx:if="{{companionNotes.list[0].isNew}}" class="companion-course-new">新</view>
         </view>
         <view class="companion-course-body">
@@ -587,7 +588,8 @@
       <scroll-view wx:elif="{{companionNotes.count > 1}}" class="companion-course-shelf" scroll-x enable-flex>
         <view wx:for="{{companionNotes.list}}" wx:key="id" class="companion-course-book" bindtap="openCompanionNote" data-id="{{item.id}}">
           <view class="companion-course-book-cover-wrap">
-            <image class="companion-course-book-cover" src="{{item.coverUrl}}" mode="aspectFill" />
+            <image wx:if="{{item.coverUrl}}" class="companion-course-book-cover" src="{{item.coverUrl}}" mode="aspectFill" />
+            <view wx:else class="companion-course-book-cover companion-course-cover-fallback"><view class="app-seal app-seal-dawn">伴</view></view>
             <view wx:if="{{item.isRead}}" class="companion-course-read-mark">✓</view>
             <view wx:elif="{{item.isNew}}" class="companion-course-new-dot"></view>
           </view>

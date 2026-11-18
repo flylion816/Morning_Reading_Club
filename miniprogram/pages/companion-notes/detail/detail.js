@@ -162,7 +162,10 @@ Page({
     this._id = decode(options.id || options.noteId || '');
     this._focusCommentId = decode(options.commentId || options.focusCommentId || '');
     this.setData({ focusCommentId: this._focusCommentId });
-    if (typeof wx.hideShareMenu === 'function') wx.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] });
+    // 单篇手札可以被分享：收的人登录后即可读
+    if (typeof wx.showShareMenu === 'function') {
+      wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    }
     this.load();
   },
 
@@ -171,6 +174,18 @@ Page({
       this._didOpenDocument = false;
       this.maybeShowPostReadPrompt();
     }
+  },
+
+  onShareAppMessage() {
+    const note = this.data.note || {};
+    // 分享单篇：优先用该篇的封面图（已转绝对地址），兜底用通用的单篇分享封面
+    return {
+      title: note.isForMe
+        ? `《${note.title || '陪伴手札'}》· 写给你的手札`
+        : `《${note.title || '陪伴手札'}》· 陪伴人 ${note.companionName || ''}的手札`,
+      path: `/pages/companion-notes/detail/detail?id=${encodeURIComponent(this._id || note.id || '')}`,
+      imageUrl: note.coverUrl || '/assets/images/companion-share-note.png'
+    };
   },
 
   onUnload() {
