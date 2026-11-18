@@ -224,7 +224,6 @@
               clearable
               filterable
               remote
-              reserve-keyword
               collapse-tags
               collapse-tags-tooltip
               :max-collapse-tags="3"
@@ -234,6 +233,7 @@
               :disabled="!formData.periodId"
               style="width: 100%"
               @change="handleCompanionUserChange"
+              @visible-change="handleCompanionDropdownToggle"
             >
               <el-option v-for="user in companionOptions" :key="getId(user)" :label="companionOptionLabel(user)" :value="getId(user)">
                 <div class="companion-option">
@@ -1043,14 +1043,18 @@ function companionOptionLabel(user: any) {
   return user?.nickname || user?.name || '未命名书友';
 }
 
-// 选中书友后：显示名默认跟随 TA 的昵称，管理员仍可手动改
-// 多选：显示名默认跟随第一位书友的昵称，管理员仍可手动改
+// 选中书友后：显示名默认跟随第一位书友的昵称，管理员仍可手动改
 function handleCompanionUserChange(ids: string[]) {
   const first = Array.isArray(ids) ? ids[0] : '';
   if (!first) return;
   const user = companionOptions.value.find(item => getId(item) === first);
   const nickname = user?.nickname || user?.name || '';
   if (nickname) formData.companionName = String(nickname).slice(0, 20);
+}
+
+// 选中一项后清掉输入框里的搜索词，下次点开重新从整期候选开始
+function handleCompanionDropdownToggle(visible: boolean) {
+  if (visible && formData.periodId) loadPeriodCompanions('');
 }
 
 async function openComments(row: any) {
