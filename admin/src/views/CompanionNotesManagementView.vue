@@ -224,6 +224,7 @@
               clearable
               filterable
               remote
+              :reserve-keyword="false"
               collapse-tags
               collapse-tags-tooltip
               :max-collapse-tags="3"
