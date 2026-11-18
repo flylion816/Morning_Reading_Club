@@ -1845,7 +1845,29 @@ page {
 }
 
 .section-icon.companion {
-  background: linear-gradient(135deg, var(--app-companion), var(--app-companion-ink));
+  /* 信纸 + 笔画的暖色印章：和文字块的蓝色系区分开，呼应手札的纸感 */
+  position: relative;
+  background: linear-gradient(150deg, var(--app-dawn) 0%, var(--app-dawn-deep) 100%);
+  color: transparent;
+}
+
+.section-icon.companion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z'/%3E%3Cpath d='M12 11l2 2 4-4'/%3E%3C/svg%3E");
+  -webkit-mask-size: 34rpx 34rpx;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  background: #fff;
+}
+
+/* 无封面图时的兜底：暖纸底 + 印章 */
+.companion-course-cover-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--app-dawn-sky) 0%, var(--app-dawn-soft) 100%);
 }
 
 .companion-course-zone {

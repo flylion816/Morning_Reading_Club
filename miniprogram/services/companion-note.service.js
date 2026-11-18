@@ -3,12 +3,27 @@
  * 这份服务放在主包：首页、课程详情和手札分包都会引用。
  */
 const request = require('../utils/request');
+const env = require('../config/env');
 
 const quiet = { suppressError: true };
+
+// 后端返回的封面是相对路径（/uploads/...），image 组件需要完整 URL
+function absoluteCoverUrl(url) {
+  const value = String(url || '');
+  if (!value || /^https?:\/\//.test(value)) return value;
+  const origin = String(env.apiBaseUrl || '').replace(/\/api\/v1\/?$/, '');
+  return `${origin}${value.startsWith('/') ? '' : '/'}${value}`;
+}
 
 function idOf(value) {
   if (value && typeof value === 'object') return value._id || value.id || '';
   return value || '';
+}
+
+function formatBytes(size) {
+  if (!size || size <= 0) return 0;
+  if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+  return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
 function normalizeNote(item = {}) {
@@ -46,7 +61,12 @@ function normalizeNote(item = {}) {
     summary: item.summary || '',
     companionName: item.companionName || item.authorName || '陪伴人',
     companionUserId: String(idOf(item.companionUserId) || ''),
-    coverUrl: item.coverUrl || item.cover || '',
+    companionUserIds: (Array.isArray(item.companionUserIds) ? item.companionUserIds : [])
+      .map(idOf)
+      .filter(Boolean)
+      .map(String),
+    coverUrl: absoluteCoverUrl(item.coverUrl || item.cover || ''),
+    originalName: String(file.originalName || item.originalName || ''),
     periodId,
     periodName,
     sectionIds,
@@ -54,7 +74,8 @@ function normalizeNote(item = {}) {
     sectionDays,
     sectionTitle: item.sectionTitle || sectionLabels[0] || '',
     pageCount,
-    fileSize: Number(item.fileSize || file.size || 0) || 0,
+    // 字节数转成可读的 KB/MB，别把 1771961 这种原始值直接渲染到页面上
+    fileSize: formatBytes(Number(item.fileSize || file.size || 0) || 0),
     likeCount,
     commentCount,
     readerCount,

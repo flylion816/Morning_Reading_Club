@@ -100,32 +100,35 @@ async function storeUpload({ tenantId, pdf, cover }) {
   validateCoverFile(cover);
 
   const fileToken = crypto.randomBytes(24).toString('hex');
-  const roots = await privateUploadDirectory(tenantId, fileToken, true);
+  const { slug, privateRoot, publicRoot } = await tenantRoots(tenantId);
+  const noteRoot = assertWithin(privateRoot, path.join(privateRoot, 'companion-notes'));
+  const directory = assertWithin(noteRoot, path.join(noteRoot, fileToken));
+  await fsp.mkdir(directory, { recursive: true });
   let coverPath;
   try {
-    await fsp.writeFile(path.join(roots.directory, 'source.pdf'), pdf.buffer, { flag: 'wx' });
+    await fsp.writeFile(path.join(directory, 'source.pdf'), pdf.buffer, { flag: 'wx' });
     await fsp.writeFile(
-      path.join(roots.directory, 'metadata.json'),
+      path.join(directory, 'metadata.json'),
       JSON.stringify({ originalName: path.basename(pdf.originalname || 'companion-note.pdf').slice(0, 255) })
     );
     const coverName = randomFileName('.jpg');
-    coverPath = assertWithin(roots.publicRoot, path.join(roots.publicRoot, coverName));
+    coverPath = assertWithin(publicRoot, path.join(publicRoot, coverName));
     await fsp.writeFile(coverPath, cover.buffer, { flag: 'wx' });
 
     return {
       fileToken,
       file: {
-        dir: roots.relativeDir,
+        dir: `companion-notes/${fileToken}`,
         originalName: path.basename(pdf.originalname || 'companion-note.pdf').slice(0, 255),
         size: pdf.size,
         pageCount: null,
         pagesReady: false,
         uploadedAt: new Date()
       },
-      coverUrl: `/uploads/tenants/${roots.slug}/${coverPath.split(path.sep).pop()}`
+      coverUrl: `/uploads/tenants/${slug}/${coverPath.split(path.sep).pop()}`
     };
   } catch (error) {
-    await fsp.rm(roots.directory, { recursive: true, force: true }).catch(() => {});
+    await fsp.rm(directory, { recursive: true, force: true }).catch(() => {});
     if (coverPath) await fsp.unlink(coverPath).catch(() => {});
     throw error;
   }

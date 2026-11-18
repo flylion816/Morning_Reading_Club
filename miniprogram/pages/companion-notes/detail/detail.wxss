@@ -56,6 +56,39 @@
   box-shadow: 0 18rpx 36rpx rgba(70, 48, 22, 0.24);
 }
 
+/* 没有封面图时：暖纸底 + 印章 + 标题的兜底封面 */
+.companion-detail-cover-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  background: linear-gradient(160deg, var(--app-dawn-sky) 0%, var(--app-dawn-soft) 100%);
+}
+
+.companion-detail-cover-fallback text {
+  max-width: 84%;
+  overflow: hidden;
+  color: var(--app-dawn-ink);
+  font-family: var(--app-font-serif);
+  font-size: 30rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 「这一篇，是写给你的」：写给被陪伴者本人的第二人称提示 */
+.companion-detail-to-you {
+  display: inline-block;
+  margin-top: 14rpx;
+  padding: 6rpx 22rpx;
+  border-radius: 999rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
 .companion-detail-title {
   display: block;
   color: var(--app-text);

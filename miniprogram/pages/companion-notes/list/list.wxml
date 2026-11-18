@@ -23,22 +23,35 @@
   </view>
 
   <block wx:elif="{{!error}}">
+    <!-- 日历格子可点：选中某一天，列表只看那天的手札 -->
     <view wx:if="{{activeScope !== 'general' && (summary.total || trail.length)}}" class="companion-trail app-card">
       <view class="companion-trail-head">
         <text class="companion-section-title">手札足迹</text>
         <text class="companion-trail-count">本期 {{summary.total}} 篇 · 你读了 {{summary.readCount}} 篇</text>
       </view>
-      <scroll-view wx:if="{{trail.length}}" class="companion-trail-dots" scroll-x enable-flex>
-        <view wx:for="{{trail}}" wx:key="key" class="companion-trail-dot {{item.hasNotes ? (item.isRead ? 'trail-read' : 'trail-unread') : 'trail-none'}} {{item.isToday ? 'trail-today' : ''}}">
-          <view class="companion-trail-dot-mark">{{item.day}}</view>
-          <text>{{item.label}}</text>
+      <view wx:if="{{trail.length}}" class="companion-trail-grid">
+        <view
+          wx:for="{{trail}}"
+          wx:key="key"
+          class="companion-trail-cell {{item.hasNotes ? (item.isRead ? 'trail-read' : 'trail-unread') : 'trail-none'}} {{item.isToday ? 'trail-today' : ''}} {{selectedDay === item.day ? 'trail-selected' : ''}}"
+          data-day="{{item.day}}"
+          bindtap="handleTrailTap"
+        >
+          <view class="companion-trail-dot-mark">{{item.mark}}</view>
+          <text class="companion-trail-cell-label">{{item.shortLabel}}</text>
         </view>
-      </scroll-view>
+      </view>
+      <view wx:if="{{selectedDay !== null}}" class="companion-trail-filter">
+        <text>只看 {{selectedDayLabel}} 的 {{selectedDayCount}} 篇</text>
+        <text class="companion-trail-clear" bindtap="handleTrailClear">看全部</text>
+      </view>
     </view>
 
-    <view wx:if="{{latest && !latest.isRead}}" class="companion-latest app-card" bindtap="openLatest">
+    <!-- 新到的手札只在没有列表内容时单独成卡；有列表时它与第一行重复，纯占版面 -->
+    <view wx:if="{{latest && !latest.isRead && !groups.length}}" class="companion-latest app-card" bindtap="openLatest">
       <view class="companion-latest-cover-wrap">
-        <image class="companion-latest-cover" src="{{latest.coverUrl}}" mode="aspectFill" />
+        <image wx:if="{{latest.coverUrl}}" class="companion-latest-cover" src="{{latest.coverUrl}}" mode="aspectFill" />
+        <view wx:else class="companion-cover-fallback"><view class="app-seal app-seal-dawn">伴</view><text>{{latest.title}}</text></view>
         <text class="companion-latest-badge">新到的手札</text>
       </view>
       <view class="companion-latest-body">
@@ -63,7 +76,8 @@
           bindtap="openNote"
         >
           <view class="companion-note-cover-wrap">
-            <image class="companion-note-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+            <image wx:if="{{note.coverUrl}}" class="companion-note-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+            <view wx:else class="companion-cover-fallback companion-cover-fallback-sm"><view class="app-seal app-seal-dawn">伴</view></view>
             <view wx:if="{{note.isRead}}" class="companion-read-mark">✓</view>
             <view wx:elif="{{note.isNew}}" class="companion-new-dot"></view>
           </view>

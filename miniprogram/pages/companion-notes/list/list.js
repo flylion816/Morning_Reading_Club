@@ -90,28 +90,56 @@ function buildNoteGroups(notes = []) {
 
 function buildTrail(overview = {}, notes = []) {
   const source = overview.trail || overview.footprint || overview.footprints || overview.sections || [];
+  const normalize = (day, index) => {
+    const value = Number(day);
+    if (!Number.isFinite(value)) return index + 1;
+    return value;
+  };
+  const markOf = day => (day === 0 ? '开' : String(day));
+  // 日历格子里只放短标签：开营 / 第N天，完整课名太长会挤爆格子
+  const shortLabelOf = (day, title) => {
+    if (day === 0) return '开营';
+    const compact = String(title || '').replace(/^第?[一二三四五六七八九十百\d]+\s*[天日课]?\s*/u, '').trim();
+    return compact ? compact.slice(0, 4) : `第${day}天`;
+  };
+  const build = (day, label, hasNotes, isRead, isToday, count, key) => ({
+    key,
+    day,
+    mark: markOf(day),
+    label,
+    shortLabel: shortLabelOf(day, label),
+    hasNotes,
+    isRead,
+    isToday,
+    count
+  });
   if (Array.isArray(source) && source.length) {
-    return source.map((item, index) => ({
-      key: String(item.id || item.sectionId || item.day || index),
-      day: Number(item.day || item.lessonNumber || index + 1),
-      label: item.title || item.name || `第 ${Number(item.day || item.lessonNumber || index + 1)} 课`,
-      hasNotes: item.hasNotes === true || item.hasNote === true || (item.hasNotes === undefined && item.hasNote === undefined && (item.count === undefined || Number(item.count) > 0)),
-      isRead: item.isRead === true || (Number(item.readCount) > 0 && Number(item.unreadCount) === 0),
-      isToday: item.isToday === true,
-      count: Number(item.count || item.noteCount || 0)
-    }));
+    return source.map((item, index) => {
+      const day = normalize(item.day ?? item.lessonNumber ?? index + 1, index);
+      return build(
+        day,
+        item.title || item.name || `第 ${day} 课`,
+        item.hasNotes === true || item.hasNote === true || (item.hasNotes === undefined && item.hasNote === undefined && (item.count === undefined || Number(item.count) > 0)),
+        item.isRead === true || (Number(item.readCount) > 0 && Number(item.unreadCount) === 0),
+        item.isToday === true,
+        Number(item.count || item.noteCount || 0),
+        String(item.id || item.sectionId || item.day || index)
+      );
+    });
   }
   const byDay = new Map();
   notes.forEach(note => {
     (note.sectionDays || []).forEach(day => {
-      const current = byDay.get(day) || { day, label: `第 ${day} 课`, hasNotes: false, isRead: true, count: 0 };
+      const current = byDay.get(day) || { day, count: 0, isRead: true };
       current.hasNotes = true;
       current.isRead = current.isRead && note.isRead;
       current.count += 1;
       byDay.set(day, current);
     });
   });
-  return Array.from(byDay.values()).sort((a, b) => a.day - b.day).map(item => ({ ...item, key: String(item.day), isToday: false }));
+  return Array.from(byDay.values())
+    .sort((a, b) => a.day - b.day)
+    .map(item => build(item.day, `第 ${item.day} 天`, true, item.isRead, false, item.count, String(item.day)));
 }
 
 function buildPeriodTabs(items = [], activePeriodId = '', activeScope = '') {
@@ -163,12 +191,17 @@ Page({
     groups: [],
     notes: [],
     page: 1,
-    hasMore: false
+    hasMore: false,
+    // 日历筛选：选中的天（null = 看全部）
+    selectedDay: null,
+    selectedDayLabel: '',
+    selectedDayCount: 0
   },
 
   onLoad(options = {}) {
     this._initialPeriodId = decode(options.periodId || '');
     this._initialScope = options.scope === 'general' ? 'general' : '';
+    this._initialDay = decode(options.day || '');
     this.setData({
       activePeriodId: this._initialPeriodId,
       activeScope: this._initialScope
@@ -236,6 +269,15 @@ Page({
         : this.data.activePeriodId || (firstTab && firstTab.scope === 'period' ? firstTab.id : '');
       const latestRaw = payload.latestUnread || notes.find(item => !item.isRead) || overview.latestUnread || overview.latest || null;
       const latest = latestRaw && (latestRaw.id || latestRaw._id) ? decorateNote(latestRaw) : null;
+      // 默认选中：今天；今天没有手札则选最近有手札的一天（外部带 day 参数进来时优先）
+      const trail = buildTrail(overview, notes);
+      const dayParam = Number(this._initialDay);
+      const hasNotesDays = trail.filter(item => item.hasNotes).map(item => item.day);
+      const todayEntry = trail.find(item => item.isToday && item.hasNotes);
+      const fallbackDay = hasNotesDays.length ? hasNotesDays[hasNotesDays.length - 1] : null;
+      const selectedDay = Number.isFinite(dayParam) && dayParam >= 0 && trail.some(item => item.day === dayParam)
+        ? dayParam
+        : (todayEntry ? todayEntry.day : fallbackDay);
       this._hasLoaded = true;
       this._loadingStarted = false;
       this._needsRefresh = false;
@@ -244,20 +286,63 @@ Page({
         loadingMore: false,
         error: false,
         notes,
-        groups: buildNoteGroups(notes),
+        groups: this.buildGroupsForDay(notes, selectedDay),
         page,
         hasMore,
         periodTabs: tabs,
         activePeriodId,
-        trail: buildTrail(overview, notes),
+        trail,
         latest,
-        summary: buildSummary(overview, notes)
+        summary: buildSummary(overview, notes),
+        selectedDay: selectedDay === null ? null : selectedDay,
+        selectedDayLabel: this.dayLabel(trail, selectedDay),
+        selectedDayCount: this.dayCount(notes, selectedDay)
       });
     } catch (error) {
       if (requestKey !== this._requestKey) return;
       this._loadingStarted = false;
       this.setData({ loading: false, loadingMore: false, error: true });
     }
+  },
+
+  // 按天过滤列表：selectedDay 为 null 时显示全部
+  buildGroupsForDay(notes, selectedDay) {
+    const filtered = selectedDay === null || selectedDay === undefined
+      ? notes
+      : notes.filter(note => (note.sectionDays || []).includes(selectedDay));
+    return buildNoteGroups(filtered);
+  },
+
+  dayLabel(trail, day) {
+    if (day === null || day === undefined) return '';
+    const entry = (trail || []).find(item => item.day === day);
+    return entry ? entry.label : `第 ${day} 课`;
+  },
+
+  dayCount(notes, day) {
+    if (day === null || day === undefined) return 0;
+    return notes.filter(note => (note.sectionDays || []).includes(day)).length;
+  },
+
+  handleTrailTap(event) {
+    const day = Number(event.currentTarget.dataset.day);
+    if (!Number.isFinite(day)) return;
+    const next = this.data.selectedDay === day ? null : day;
+    this.setData({
+      selectedDay: next,
+      selectedDayLabel: this.dayLabel(this.data.trail, next),
+      selectedDayCount: this.dayCount(this.data.notes, next),
+      groups: this.buildGroupsForDay(this.data.notes, next)
+    });
+  },
+
+  handleTrailClear() {
+    this.setData({
+      selectedDay: null,
+      selectedDayLabel: '',
+      selectedDayCount: 0,
+      groups: this.buildGroupsForDay(this.data.notes, null)
+    });
   },
 
   retry() {

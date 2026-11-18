@@ -23,10 +23,15 @@
       <view class="companion-book-stack">
         <view class="companion-book-shadow shadow-a"></view>
         <view class="companion-book-shadow shadow-b"></view>
-        <image class="companion-detail-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+        <image wx:if="{{note.coverUrl}}" class="companion-detail-cover" src="{{note.coverUrl}}" mode="aspectFill" />
+        <view wx:else class="companion-detail-cover companion-detail-cover-fallback">
+          <view class="app-seal app-seal-dawn">伴</view>
+          <text>{{note.title}}</text>
+        </view>
       </view>
       <text class="companion-detail-title">{{note.title}}</text>
-      <text class="companion-detail-meta">陪伴人 {{note.companionName}} · {{note.pageCount}} 页{{note.fileSize ? ' · ' + note.fileSize : ''}}</text>
+      <text wx:if="{{note.isForMe}}" class="companion-detail-to-you">这一篇，是写给你的</text>
+      <text class="companion-detail-meta">{{note.isForMe ? '来自陪伴你的人' : '陪伴人 ' + note.companionName}} · {{note.pageCount}} 页{{note.fileSize ? ' · ' + note.fileSize : ''}}</text>
       <text wx:if="{{note.summary}}" class="companion-detail-summary">{{note.summary}}</text>
     </view>
 
@@ -117,7 +122,7 @@
   <view wx:if="{{postReadPrompt}}" class="companion-sheet-mask" catchtap="closePostReadPrompt">
     <view class="companion-post-read-sheet" catchtap="noop">
       <text class="companion-sheet-title">读完了？</text>
-      <text class="companion-sheet-subtitle">留一句回响，{{note.companionName}}会看到；不想写也没关系</text>
+      <text class="companion-sheet-subtitle">{{note.isForMe ? '读完以后，留一句你想说的；写给你的人会看到' : '留一句回响，' + note.companionName + '会看到；不想写也没关系'}}</text>
       <view class="companion-suggestions">
         <text wx:for="{{promptSuggestions}}" wx:key="*this" class="companion-suggestion" data-text="{{item}}" bindtap="choosePrompt">{{item}}</text>
       </view>

@@ -190,6 +190,10 @@ Page({
         service.getComments(this._id, { limit: 50 })
       ]);
       const note = service.normalizeNote(rawNote);
+      // 「这一篇是写给你的」：当前用户在陪伴对象名单里时，用第二人称视角呈现
+      const me = userIdOf(currentUser());
+      const companionIds = [note.companionUserId, ...(note.companionUserIds || [])].filter(Boolean);
+      note.isForMe = Boolean(me && companionIds.includes(me));
       note.recentLikes = (note.recentLikes || []).map(item => ({
         ...item,
         ...getUserAvatarDisplay(item, {
@@ -278,7 +282,8 @@ Page({
           }
           this._tempFilePath = response.tempFilePath;
           this.setData({ downloading: false, downloadProgress: 100, downloadLoaded: 0, downloadTotal: 0 });
-          this.openDownloadedFile(response.tempFilePath);
+          // 打开前把临时文件改名为后台的原始文件名，PDF 查看器顶栏显示的就是它
+          this.openDownloadedFile(this.renameToOriginal(response.tempFilePath));
           resolve(response.tempFilePath);
         },
         fail: error => {
@@ -297,6 +302,26 @@ Page({
         });
       }
     });
+  },
+
+  // 把下载的临时文件改名为手札的原始文件名；改名失败不影响打开（仍用临时路径）
+  renameToOriginal(tempFilePath) {
+    const raw = String((this.data.note && this.data.note.originalName) || '').trim();
+    const safeName = (raw || `${this.data.note?.title || 'companion-note'}.pdf`)
+      .replace(/[\\/:*?"<>|\r\n]/g, '')
+      .trim()
+      .slice(0, 120);
+    if (!safeName || !/\.pdf$/i.test(safeName)) return tempFilePath;
+    try {
+      const fsm = wx.getFileSystemManager();
+      const dir = tempFilePath.replace(/[^/]+$/, '');
+      const target = `${dir}${safeName}`;
+      fsm.renameSync(tempFilePath, target);
+      this._tempFilePath = target;
+      return target;
+    } catch (error) {
+      return tempFilePath;
+    }
   },
 
   cancelDownload() {

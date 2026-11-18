@@ -7,8 +7,11 @@ const { getCurrentTenantId } = require('../utils/tenantContext');
 const controller = require('../controllers/companion-note.controller');
 
 const router = express.Router();
+// defParamCharset: 'utf8'：Safari 发中文文件名时不带 RFC 5987 编码，
+// busboy 默认按 latin1 解码会把「小程序的故事」变成乱码。
 const memoryUpload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: {
     fileSize: 50 * 1024 * 1024,
     files: 2
@@ -16,6 +19,7 @@ const memoryUpload = multer({
 });
 const pageUpload = multer({
   storage: multer.memoryStorage(),
+  defParamCharset: 'utf8',
   limits: {
     fileSize: 1.5 * 1024 * 1024,
     files: 1

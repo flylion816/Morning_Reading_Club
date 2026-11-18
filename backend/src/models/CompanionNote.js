@@ -18,7 +18,10 @@ const CompanionNoteSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true, minlength: 1, maxlength: 40 },
     summary: { type: String, trim: true, maxlength: 200, default: '' },
     companionName: { type: String, required: true, trim: true, minlength: 1, maxlength: 20 },
+    // 主陪伴人（兼容单人的旧字段，取 companionUserIds 的第一位）
     companionUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    // 一篇手札可以写给多位书友：TA 们都会收到通知，打开时看到「写给你」的视角
+    companionUserIds: { type: [mongoose.Schema.Types.ObjectId], ref: 'User', default: [] },
     file: { type: FileSchema, required: true },
     coverUrl: { type: String, required: true, trim: true, maxlength: 1000 },
     periodId: { type: mongoose.Schema.Types.ObjectId, ref: 'Period', default: null },
