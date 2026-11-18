@@ -227,14 +227,14 @@ Page({
     const query = params.length ? `?${params.join('&')}` : '';
     const scopeName = this.data.activeScope === 'general' ? '全营' : (periodTab.name || '本期');
     const dayText = dayEntry ? `第 ${dayEntry.day === 0 ? '0' : dayEntry.day} 天` : '';
+    const hasDayPicked = day !== null && day !== undefined;
     return {
-      title: day !== null && dayCount
-        ? `陪伴手札 · ${scopeName}${dayText ? ' · ' + dayText : ''}，${dayCount} 篇等你翻开`
+      title: hasDayPicked
+        ? `陪伴手札 · ${scopeName}${dayText ? ' · ' + dayText : ''}${dayCount ? `，${dayCount} 篇等你翻开` : '，这一天还没有手札'}`
         : `陪伴手札 · ${scopeName}，每一课后的陪伴`,
       path: `/pages/companion-notes/list/list${query}`,
-      imageUrl: day !== null && dayCount
-        ? '/assets/images/companion-share-day.png'
-        : '/assets/images/companion-share-note.png'
+      // 只要是从专区分享就统一用日历封面；天数写进标题，图上的数字是示意
+      imageUrl: '/assets/images/companion-share-day.png'
     };
   },
 
