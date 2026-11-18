@@ -55,7 +55,7 @@ describe('companion note service', () => {
       sectionLabels: ['双赢思维', '知彼解己'],
       sectionDays: [5, 6],
       pageCount: 7,
-      fileSize: 8400000,
+      fileSize: '8.0 MB',
       likeCount: 12,
       commentCount: 5,
       readerCount: 23

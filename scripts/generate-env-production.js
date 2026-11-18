@@ -42,6 +42,8 @@ function collectCommonSecrets() {
   values.WECHAT_APPID = required('WECHAT_APPID');
   values.WECHAT_SECRET = required('WECHAT_SECRET');
   values.EXTERNAL_API_KEY_ENCRYPTION_KEY = required('EXTERNAL_API_KEY_ENCRYPTION_KEY');
+  // 陪伴手札下载令牌的签名密钥：漏配时 file-ticket 接口 503
+  values.COMPANION_FILE_SECRET = optional('COMPANION_FILE_SECRET', require('crypto').randomBytes(32).toString('hex'));
   values.ADMIN_DEFAULT_PASSWORD = required('ADMIN_DEFAULT_PASSWORD');
   values.ADMIN_DB_ACCESS_PASSWORD = required('ADMIN_DB_ACCESS_PASSWORD');
   return values;
@@ -75,6 +77,7 @@ function generateServerEnv() {
     line('JWT_WS_SECRET', common.JWT_WS_SECRET),
     line('JWT_ADMIN_SECRET', common.JWT_ADMIN_SECRET),
     line('JWT_ADMIN_REFRESH_SECRET', common.JWT_ADMIN_REFRESH_SECRET),
+    line('COMPANION_FILE_SECRET', common.COMPANION_FILE_SECRET),
     line('JWT_EXPIRES_IN', optional('JWT_EXPIRES_IN', '2h')),
     line('JWT_REFRESH_EXPIRES_IN', optional('JWT_REFRESH_EXPIRES_IN', '30d')),
     line('WECHAT_APPID', common.WECHAT_APPID),
@@ -128,6 +131,7 @@ function generateDockerEnv() {
     composeLine('JWT_WS_SECRET', common.JWT_WS_SECRET),
     composeLine('JWT_ADMIN_SECRET', common.JWT_ADMIN_SECRET),
     composeLine('JWT_ADMIN_REFRESH_SECRET', common.JWT_ADMIN_REFRESH_SECRET),
+    composeLine('COMPANION_FILE_SECRET', common.COMPANION_FILE_SECRET),
     composeLine('JWT_EXPIRES_IN', optional('JWT_EXPIRES_IN', '2h')),
     composeLine('JWT_REFRESH_EXPIRES_IN', optional('JWT_REFRESH_EXPIRES_IN', '30d')),
     composeLine('WECHAT_APPID', common.WECHAT_APPID),

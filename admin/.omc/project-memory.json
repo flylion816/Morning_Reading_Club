@@ -42,8 +42,8 @@
     "runtime": "Node.js 20.19.0||22.12.0"
   },
   "build": {
-    "buildCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run 2>&1 | grep -E \"Tests |Test Files\"; npx vue-tsc --build 2>&1 | grep -c \"error TS\"; npx vite build --outDir /private/tmp/claude-501/p2/admin-dist 2>&1 | tail -3",
-    "testCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run 2>&1 | grep -E \"Tests |Test Files\"; npx vue-tsc --build 2>&1 | grep -c \"error TS\"; npx vite build --outDir /private/tmp/claude-501/p2/admin-dist 2>&1 | tail -3",
+    "buildCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run src/views/__tests__/CompanionNotesManagementView.spec.ts 2>&1 | tail -6 && npm run build-only 2>&1 | tail -3",
+    "testCommand": "cd \"/Users/lion/Nutstore Files/我的坚果云/flylion/AI项目开发/七个习惯晨读营/admin\" && npx vitest run src/views/__tests__/CompanionNotesManagementView.spec.ts 2>&1 | tail -5",
     "lintCommand": null,
     "devCommand": "npm run dev",
     "scripts": {
@@ -182,6 +182,12 @@
   },
   "hotPaths": [
     {
+      "path": "src/views/CompanionNotesManagementView.vue",
+      "accessCount": 12,
+      "lastAccessed": 1794962193752,
+      "type": "file"
+    },
+    {
       "path": "src/utils/__tests__/renderInsightMarkdown.spec.ts",
       "accessCount": 2,
       "lastAccessed": 1792891082346,
@@ -191,6 +197,12 @@
       "path": "src/utils/renderInsightMarkdown.ts",
       "accessCount": 2,
       "lastAccessed": 1792891281861,
+      "type": "file"
+    },
+    {
+      "path": "src/services/api.ts",
+      "accessCount": 2,
+      "lastAccessed": 1794962612098,
       "type": "file"
     },
     {

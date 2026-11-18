@@ -169,12 +169,40 @@ Page({
   onLoad(options = {}) {
     this._initialPeriodId = decode(options.periodId || '');
     this._initialScope = options.scope === 'general' ? 'general' : '';
+    this._initialDay = decode(options.day || '');
     this.setData({
       activePeriodId: this._initialPeriodId,
       activeScope: this._initialScope
     });
-    if (typeof wx.hideShareMenu === 'function') wx.hideShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] });
+    // 专区可以被分享：分享出去带期次和选中的天，收的人点开直达那一天的手札
+    if (typeof wx.showShareMenu === 'function') {
+      wx.showShareMenu({ withShareTicket: false, menus: ['shareAppMessage', 'shareTimeline'] });
+    }
     this.loadList(true);
+  },
+
+  onShareAppMessage() {
+    const periodTab = this.data.periodTabs.find(tab => tab.active) || {};
+    const periodId = this.data.activeScope === 'general' ? '' : (this.data.activePeriodId || '');
+    const day = this.data.selectedDay;
+    const dayEntry = this.data.trail.find(item => item.day === day);
+    const dayCount = this.data.selectedDayCount || (dayEntry ? dayEntry.count : 0);
+    const params = [];
+    if (periodId) params.push(`periodId=${encodeURIComponent(periodId)}`);
+    if (this.data.activeScope === 'general') params.push('scope=general');
+    if (day !== null && day !== undefined) params.push(`day=${day}`);
+    const query = params.length ? `?${params.join('&')}` : '';
+    const scopeName = this.data.activeScope === 'general' ? '全营' : (periodTab.name || '本期');
+    const dayText = dayEntry ? `第 ${dayEntry.day === 0 ? '0' : dayEntry.day} 天` : '';
+    return {
+      title: day !== null && dayCount
+        ? `陪伴手札 · ${scopeName}${dayText ? ' · ' + dayText : ''}，${dayCount} 篇等你翻开`
+        : `陪伴手札 · ${scopeName}，每一课后的陪伴`,
+      path: `/pages/companion-notes/list/list${query}`,
+      imageUrl: day !== null && dayCount
+        ? '/assets/images/companion-share-day.png'
+        : '/assets/images/companion-share-note.png'
+    };
   },
 
   onShow() {

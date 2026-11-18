@@ -88,20 +88,30 @@
   font-size: 30rpx;
 }
 
-.companion-trail-dots {
+/* 日历式足迹：固定 7 列换行，像月历一样一眼看全整期 */
+.companion-trail-grid {
   display: flex;
-  gap: 22rpx;
+  flex-wrap: wrap;
+  gap: 14rpx 10rpx;
   margin-top: 20rpx;
-  white-space: nowrap;
 }
 
-.companion-trail-dot {
-  display: inline-flex;
+.companion-trail-cell {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 58rpx;
+  width: calc((100% - 60rpx) / 7);
   color: var(--app-text-muted);
   font-size: 19rpx;
+}
+
+.companion-trail-cell-label {
+  display: block;
+  overflow: hidden;
+  max-width: 100%;
+  margin-top: 4rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .companion-trail-dot-mark {
@@ -118,26 +128,82 @@
   font-size: 21rpx;
 }
 
-.companion-trail-dot.trail-read .companion-trail-dot-mark {
+.companion-trail-cell.trail-read .companion-trail-dot-mark {
   border-style: solid;
   border-color: var(--app-dawn);
   background: var(--app-dawn);
   color: #fff;
 }
 
-.companion-trail-dot.trail-unread .companion-trail-dot-mark {
+.companion-trail-cell.trail-unread .companion-trail-dot-mark {
   border-style: solid;
   border-color: var(--app-dawn);
   color: var(--app-dawn-ink);
 }
 
-.companion-trail-dot.trail-today .companion-trail-dot-mark {
+.companion-trail-cell.trail-today .companion-trail-dot-mark {
   box-shadow: 0 0 0 4rpx var(--app-paper), 0 0 0 6rpx var(--theme-primary);
+}
+
+/* 选中的那天：整格底色高亮 */
+.companion-trail-cell.trail-selected {
+  background: var(--app-dawn-soft);
+  border-radius: 14rpx;
+}
+
+.companion-trail-cell.trail-selected .companion-trail-cell-label {
+  color: var(--app-dawn-ink);
+  font-weight: 600;
+}
+
+.companion-trail-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 18rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 12rpx;
+  background: var(--app-dawn-soft);
+  color: var(--app-dawn-ink);
+  font-size: 23rpx;
+}
+
+.companion-trail-clear {
+  color: var(--theme-primary);
+  font-weight: 600;
 }
 
 .companion-latest {
   overflow: hidden;
   margin-bottom: 24rpx;
+}
+
+/* 没有封面图时的纸面兜底：暖色纸 + 印章 + 标题 */
+.companion-cover-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, var(--app-dawn-sky) 0%, var(--app-dawn-soft) 100%);
+}
+
+.companion-cover-fallback text {
+  max-width: 80%;
+  overflow: hidden;
+  color: var(--app-dawn-ink);
+  font-family: var(--app-font-serif);
+  font-size: 28rpx;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-cover-fallback-sm .app-seal {
+  transform: scale(0.72);
 }
 
 .companion-latest-cover-wrap {

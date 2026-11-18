@@ -217,23 +217,51 @@
             <div class="form-hint">默认取文件名，并自动去掉日期后缀。</div>
           </el-form-item>
 
-          <el-form-item label="陪伴人" required>
-            <div class="two-fields">
-              <el-input v-model="formData.companionName" maxlength="20" placeholder="显示名称" />
-              <el-select
-                v-model="formData.companionUserId"
-                clearable
-                filterable
-                remote
-                reserve-keyword
-                :remote-method="searchCompanions"
-                :loading="companionSearchLoading"
-                placeholder="关联小程序账号（可选）"
-              >
-                <el-option v-for="user in companionOptions" :key="getId(user)" :label="user.nickname || user.name" :value="getId(user)" />
-              </el-select>
+          <el-form-item label="陪伴书友" required>
+            <el-select
+              v-model="formData.companionUserIds"
+              multiple
+              clearable
+              filterable
+              remote
+              reserve-keyword
+              collapse-tags
+              collapse-tags-tooltip
+              :max-collapse-tags="3"
+              :remote-method="searchCompanions"
+              :loading="companionSearchLoading"
+              :placeholder="formData.periodId ? '搜索本期书友昵称，可多选' : '先选绑定期次，再从这一期里挑书友'"
+              :disabled="!formData.periodId"
+              style="width: 100%"
+              @change="handleCompanionUserChange"
+            >
+              <el-option v-for="user in companionOptions" :key="getId(user)" :label="companionOptionLabel(user)" :value="getId(user)">
+                <div class="companion-option">
+                  <span>{{ user.nickname || user.name || '未命名书友' }}</span>
+                  <small v-if="user.enrollmentName && user.enrollmentName !== companionOptionLabel(user)">{{ user.enrollmentName }}</small>
+                  <small v-else-if="user.enrolledAt">已报名</small>
+                </div>
+              </el-option>
+            </el-select>
+            <div class="form-hint">
+              {{ formData.periodId
+                ? '候选来自这一期的报名书友，可多选；选中的书友都会收到回响来信，回复自动带「陪伴人」标识。'
+                : '这份手札还没有绑定期次：先在上面选期次，这里会自动列出那一期的书友。' }}
             </div>
-            <div class="form-hint">关联账号后，陪伴人能收到回响来信，回复会带「陪伴人」标识。</div>
+            <el-input
+              v-if="formData.companionUserIds.length"
+              v-model="formData.companionName"
+              maxlength="20"
+              class="companion-name-input"
+              placeholder="手札里显示的陪伴人名字"
+            />
+            <el-input
+              v-else
+              v-model="formData.companionName"
+              maxlength="20"
+              class="companion-name-input"
+              placeholder="未绑定书友时，手札里显示的陪伴人名字"
+            />
           </el-form-item>
 
           <el-form-item label="简介">
@@ -346,7 +374,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import { Upload } from '@element-plus/icons-vue';
 import pdfjsModuleUrl from 'pdfjs-dist/build/pdf.mjs?url';
 import AdminLayout from '../components/AdminLayout.vue';
-import { companionNotesApi, periodApi, userApi } from '../services/api';
+import { companionNotesApi, enrollmentApi, periodApi } from '../services/api';
 
 const MAX_PDF_SIZE = 50 * 1024 * 1024;
 const LARGE_PDF_SIZE = 20 * 1024 * 1024;
@@ -414,7 +442,7 @@ function createEmptyForm() {
     title: '',
     summary: '',
     companionName: '',
-    companionUserId: '',
+    companionUserIds: [] as string[],
     periodId: '',
     sectionIds: [],
     status: 'draft'
@@ -781,7 +809,7 @@ async function saveNote(status: 'draft' | 'published') {
       title: formData.title.trim(),
       summary: formData.summary.trim(),
       companionName: formData.companionName.trim(),
-      companionUserId: formData.companionUserId || null,
+      companionUserIds: [...formData.companionUserIds],
       periodId: formData.periodId || null,
       sectionIds: [...formData.sectionIds],
       ...(fileToken ? { fileToken } : {}),
@@ -820,7 +848,10 @@ function mapNoteToForm(note: any) {
     title: note.title || '',
     summary: note.summary || '',
     companionName: note.companionName || '',
-    companionUserId: getId(note.companionUserId || note.companionUser) || '',
+    companionUserIds: (Array.isArray(note.companionUserIds) && note.companionUserIds.length
+      ? note.companionUserIds
+      : [getId(note.companionUserId || note.companionUser)].filter(Boolean)
+    ).map(id => (typeof id === 'string' ? id : getId(id))),
     periodId: getId(note.periodId || note.period) || '',
     sectionIds: (note.sectionIds || note.sections || []).map(section => typeof section === 'string' ? section : getId(section)),
     status: note.status || 'draft'
@@ -856,11 +887,28 @@ async function openEdit(row: any) {
     ElMessage.warning(error?.message || '详情没加载出来，已使用列表数据');
   }
   await loadSections(formData.periodId, formSections);
+  // 编辑时把已绑定的陪伴书友放进候选，选中项才能正常回显
+  if (formData.companionUserIds.length) {
+    companionOptions.value = formData.companionUserIds.map(id => ({
+      _id: id,
+      nickname: id === formData.companionUserIds[0] && formData.companionName ? formData.companionName : '已绑定的书友',
+      avatarUrl: '',
+      enrollmentName: '',
+      enrolledAt: ''
+    }));
+    if (formData.periodId) loadPeriodCompanions('');
+  } else if (formData.periodId) {
+    loadPeriodCompanions('');
+  }
 }
 
 function handleFormPeriodChange(periodId: string) {
   formData.sectionIds = [];
   loadSections(periodId, formSections);
+  // 陪伴书友跟着期次走：换期就清掉已选的人，并预载新一期的候选
+  formData.companionUserIds = [];
+  companionOptions.value = [];
+  if (periodId) loadPeriodCompanions('');
 }
 
 function handleDragStart(row: any) {
@@ -932,21 +980,69 @@ async function deleteNote(row: any) {
 
 async function searchCompanions(query: string) {
   if (companionSearchTimer) clearTimeout(companionSearchTimer);
-  if (!query.trim()) {
+  if (!formData.periodId) {
     companionOptions.value = [];
     return;
   }
-  companionSearchTimer = setTimeout(async () => {
-    companionSearchLoading.value = true;
-    try {
-      const response = await userApi.adminSearch(query.trim());
-      companionOptions.value = extractList(response, ['list', 'users']);
-    } catch {
-      companionOptions.value = [];
-    } finally {
-      companionSearchLoading.value = false;
-    }
+  if (!query.trim()) {
+    // 空搜索时也先给这一期的前几个书友，点开就能选（和其他地方选人一致）
+    loadPeriodCompanions('');
+    return;
+  }
+  companionSearchTimer = setTimeout(() => {
+    loadPeriodCompanions(query.trim());
   }, 250);
+}
+
+// 候选只来自当前绑定期的报名书友（按昵称过滤），和其他管理页选人一个体验
+async function loadPeriodCompanions(query: string) {
+  companionSearchLoading.value = true;
+  try {
+    const response = await enrollmentApi.getEnrollments({
+      periodId: formData.periodId,
+      status: 'active',
+      limit: 200
+    });
+    const seen = new Set<string>();
+    const list = extractList(response, ['list', 'enrollments'])
+      .filter(item => {
+        const id = getId(item.userId);
+        return id && !seen.has(id) && seen.add(id);
+      })
+      .filter(item => {
+        if (!query) return true;
+        const nickname = String(item.userId?.nickname || '').toLowerCase();
+        const enrollmentName = String(item.name || '').toLowerCase();
+        const q = query.toLowerCase();
+        return nickname.includes(q) || enrollmentName.includes(q);
+      })
+      .slice(0, 50);
+    companionOptions.value = list.map(item => ({
+      _id: getId(item.userId),
+      nickname: item.userId?.nickname || item.name || '未命名书友',
+      avatarUrl: item.userId?.avatarUrl || '',
+      enrollmentName: item.name || '',
+      enrolledAt: item.enrolledAt || ''
+    }));
+  } catch {
+    companionOptions.value = [];
+  } finally {
+    companionSearchLoading.value = false;
+  }
+}
+
+function companionOptionLabel(user: any) {
+  return user?.nickname || user?.name || '未命名书友';
+}
+
+// 选中书友后：显示名默认跟随 TA 的昵称，管理员仍可手动改
+// 多选：显示名默认跟随第一位书友的昵称，管理员仍可手动改
+function handleCompanionUserChange(ids: string[]) {
+  const first = Array.isArray(ids) ? ids[0] : '';
+  if (!first) return;
+  const user = companionOptions.value.find(item => getId(item) === first);
+  const nickname = user?.nickname || user?.name || '';
+  if (nickname) formData.companionName = String(nickname).slice(0, 20);
 }
 
 async function openComments(row: any) {
@@ -1074,7 +1170,9 @@ onMounted(() => {
 .cover-editor { display: flex; align-items: flex-end; gap: 14px; }
 .cover-preview { width: 78px; height: 116px; overflow: hidden; border: 1px solid var(--admin-border); border-radius: 5px; background: var(--admin-page); display: grid; place-items: center; color: var(--admin-ink-muted); font-size: 11px; }
 .cover-preview img { width: 100%; height: 100%; object-fit: cover; }
-.two-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; width: 100%; }
+.companion-name-input { margin-top: 8px; }
+.companion-option { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.companion-option small { overflow: hidden; max-width: 150px; color: var(--admin-ink-muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .section-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; width: 100%; }
 .section-grid :deep(.el-checkbox) { min-width: 0; height: auto; margin-right: 0; padding: 7px 9px; border: 1px solid var(--admin-border); border-radius: 6px; background: var(--admin-surface-strong); }
 .section-grid :deep(.el-checkbox.is-checked) { border-color: var(--admin-primary); background: var(--admin-primary-soft); }
@@ -1110,6 +1208,6 @@ onMounted(() => {
   .heading-actions .el-button { flex: 1; }
   .list-header { align-items: flex-start; flex-direction: column; }
   .list-header > div { align-items: flex-start; flex-direction: column; gap: 3px; }
-  .two-fields, .section-grid { grid-template-columns: 1fr; }
+  .section-grid { grid-template-columns: 1fr; }
 }
 </style>
