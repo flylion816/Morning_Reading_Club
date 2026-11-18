@@ -41,13 +41,15 @@
           <text class="companion-trail-cell-label">{{item.shortLabel}}</text>
         </view>
       </view>
-      <view wx:if="{{selectedDay !== null}}" class="companion-trail-filter">
-        <text>只看 {{selectedDayLabel}} 的 {{selectedDayCount}} 篇</text>
-        <view class="companion-trail-filter-actions">
-          <button class="companion-share-btn" open-type="share" hover-class="none">分享这一天</button>
-          <text class="companion-trail-clear" bindtap="handleTrailClear">看全部</text>
-        </view>
+    </view>
+
+    <!-- 选中那天的标题栏：课名 + 篇数 + 分享；代替原来的行内筛选条 -->
+    <view wx:if="{{selectedDay !== null}}" class="companion-day-bar">
+      <view class="companion-day-bar-copy">
+        <text class="companion-day-bar-title">{{selectedDayLabel}}</text>
+        <text class="companion-day-bar-count">{{selectedDayCount}} 篇</text>
       </view>
+      <button class="companion-share-btn" open-type="share" hover-class="none">分享这一天</button>
     </view>
 
     <!-- 新到的手札只在没有列表内容时单独成卡；有列表时它与第一行重复，纯占版面 -->

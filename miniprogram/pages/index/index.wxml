@@ -275,14 +275,16 @@
             <text class="section-header-title">营地角落</text>
           </view>
         </view>
-        <view wx:if="{{companionNoteStrip}}" class="companion-home-strip" bindtap="handleCompanionNoteStripTap" data-note-id="{{companionNoteStrip.noteId}}" data-period-id="{{companionNoteStrip.periodId}}">
-          <view class="companion-home-cover"><view class="app-icon app-icon-book"></view></view>
-          <view class="companion-home-copy">
-            <text class="companion-home-kicker">陪伴手札 <text wx:if="{{companionNoteStrip.noteId}}">· 新</text></text>
-            <text class="companion-home-title">{{companionNoteStrip.title}}</text>
-            <text wx:if="{{companionNoteStrip.sub}}" class="companion-home-sub">{{companionNoteStrip.sub}}</text>
+        <view wx:if="{{companionNoteStrip}}" class="companion-home-strip">
+          <view class="companion-home-main" bindtap="handleCompanionNoteStripTap" data-note-id="{{companionNoteStrip.noteId}}" data-period-id="{{companionNoteStrip.periodId}}">
+            <view class="companion-home-cover"><view class="app-icon app-icon-book"></view></view>
+            <view class="companion-home-copy">
+              <text class="companion-home-kicker">陪伴手札 <text wx:if="{{companionNoteStrip.noteId}}">· 新</text></text>
+              <text class="companion-home-title">{{companionNoteStrip.title}}</text>
+              <text wx:if="{{companionNoteStrip.sub}}" class="companion-home-sub">{{companionNoteStrip.sub}}</text>
+            </view>
           </view>
-          <text class="companion-home-cta">{{companionNoteStrip.cta}} ›</text>
+          <text class="companion-home-cta" catchtap="openCompanionNoteZone" data-period-id="{{companionNoteStrip.periodId}}">专区 ›</text>
         </view>
         <view wx:if="{{campCornerStatus === 'loading'}}" class="camp-corner-state">
           <view class="app-skeleton camp-corner-skeleton"></view>
