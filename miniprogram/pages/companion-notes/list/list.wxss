@@ -169,6 +169,30 @@
   font-size: 23rpx;
 }
 
+.companion-trail-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  flex-shrink: 0;
+}
+
+/* 「分享这一天」：open-type=share 的原生按钮，去掉默认样式 */
+.companion-share-btn {
+  margin: 0;
+  padding: 6rpx 20rpx;
+  border: none;
+  border-radius: 999rpx;
+  background: var(--theme-primary);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.companion-share-btn::after {
+  border: none;
+}
+
 .companion-trail-clear {
   color: var(--theme-primary);
   font-weight: 600;
