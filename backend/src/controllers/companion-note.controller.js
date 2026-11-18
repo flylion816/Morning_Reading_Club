@@ -285,12 +285,6 @@ async function validateNoteBinding(periodId, sectionIds) {
 function validateMetadata(body) {
   const title = normalizeText(body.title);
   const summary = normalizeText(body.summary);
-  const companionName = normalizeText(body.companionName);
-  if (Array.from(title).length < 1 || Array.from(title).length > 40) throw badRequest('标题长度必须为1–40字');
-  if (Array.from(summary).length > 200) throw badRequest('简介不能超过200字');
-  if (Array.from(companionName).length < 1 || Array.from(companionName).length > 20) {
-    throw badRequest('陪伴人名称长度必须为1–20字');
-  }
   const periodId = body.periodId === undefined || body.periodId === '' || body.periodId === null
     ? null
     : String(body.periodId);
@@ -298,6 +292,16 @@ function validateMetadata(body) {
   // 支持一位或多位陪伴书友：companionUserIds 是全集，companionUserId 保持第一位兼容旧逻辑
   const companionUserIds = parseIdArray(body.companionUserIds);
   const companionUserId = body.companionUserId || companionUserIds[0] || null;
+  // 手札里显示的陪伴人名字：选了书友就不必手填（saveAdminNote 会补第一位书友的昵称）
+  const companionName = normalizeText(body.companionName);
+  if (Array.from(title).length < 1 || Array.from(title).length > 40) throw badRequest('标题长度必须为1–40字');
+  if (Array.from(summary).length > 200) throw badRequest('简介不能超过200字');
+  if (!companionUserIds.length && (Array.from(companionName).length < 1 || Array.from(companionName).length > 20)) {
+    throw badRequest('陪伴人名称长度必须为1–20字');
+  }
+  if (companionUserIds.length && Array.from(companionName).length > 20) {
+    throw badRequest('陪伴人名称不能超过20字');
+  }
   return {
     title,
     summary,
@@ -308,6 +312,7 @@ function validateMetadata(body) {
     sectionIds
   };
 }
+
 
 async function refreshNoteCommentCount(noteId) {
   const comments = await CompanionNoteComment.find({ noteId }).select('hidden replies').lean();
@@ -1027,9 +1032,16 @@ async function getAdminDetail(req, res, next) {
 
 async function saveAdminNote(req, res, next) {
   try {
-    const metadata = validateMetadata(req.body);
+    let metadata = validateMetadata(req.body);
+    // 先校验陪伴书友：选了书友时，缺省的手札显示名会在这里补上第一位书友的昵称
+    const companions = await ensureCompanionUsers(metadata.companionUserIds);
+    if (companions.length && !normalizeText(req.body.companionName)) {
+      metadata = {
+        ...metadata,
+        companionName: String(companions[0].nickname || '').slice(0, 20) || metadata.companionName
+      };
+    }
     await validateNoteBinding(metadata.periodId, metadata.sectionIds);
-    await ensureCompanionUsers(metadata.companionUserIds);
 
     const note = req.params.id ? await findAdminNote(req.params.id) : null;
     if (req.params.id && !note) return res.status(404).json(errors.notFound('陪伴手札不存在'));

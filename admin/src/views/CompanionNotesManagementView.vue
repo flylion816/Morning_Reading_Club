@@ -253,14 +253,14 @@
               v-model="formData.companionName"
               maxlength="20"
               class="companion-name-input"
-              placeholder="手札里显示的陪伴人名字"
+              placeholder="选填：默认用第一位书友的昵称"
             />
             <el-input
               v-else
               v-model="formData.companionName"
               maxlength="20"
               class="companion-name-input"
-              placeholder="未绑定书友时，手札里显示的陪伴人名字"
+              placeholder="未选书友时必填：手札里显示的陪伴人名字"
             />
           </el-form-item>
 
@@ -788,7 +788,8 @@ function validateSectionLinkage(periodId: string, sectionIds: string[], availabl
 
 function validateForm() {
   if (!formData.title.trim()) return '标题不能为空';
-  if (!formData.companionName.trim()) return '陪伴人不能为空';
+  // 选了陪伴书友就不必手填名字（保存时默认取第一位书友的昵称）；两者都没有才拦截
+  if (!formData.companionUserIds.length && !formData.companionName.trim()) return '请选择陪伴书友，或填写陪伴人名字';
   const linkageError = validateSectionLinkage(formData.periodId, formData.sectionIds, formSections.value);
   if (linkageError) return linkageError;
   if (!editingId.value && !selectedPdf.value && !formData.fileToken) return '请先选择 PDF 文件';
@@ -873,6 +874,13 @@ function openCreate() {
   editingId.value = '';
   resetForm();
   drawerVisible.value = true;
+  // 和编辑页一致：默认选中第一个期次，陪伴书友立即可搜可选
+  if (!formData.periodId && periods.value.length) {
+    const first = periods.value[0];
+    formData.periodId = getId(first);
+    loadSections(formData.periodId, formSections);
+    loadPeriodCompanions('');
+  }
 }
 
 async function openEdit(row: any) {
