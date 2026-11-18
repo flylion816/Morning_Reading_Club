@@ -43,7 +43,10 @@
       </view>
       <view wx:if="{{selectedDay !== null}}" class="companion-trail-filter">
         <text>只看 {{selectedDayLabel}} 的 {{selectedDayCount}} 篇</text>
-        <text class="companion-trail-clear" bindtap="handleTrailClear">看全部</text>
+        <view class="companion-trail-filter-actions">
+          <button class="companion-share-btn" open-type="share" hover-class="none">分享这一天</button>
+          <text class="companion-trail-clear" bindtap="handleTrailClear">看全部</text>
+        </view>
       </view>
     </view>
 
