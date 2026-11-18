@@ -169,6 +169,38 @@
   font-size: 23rpx;
 }
 
+/* 选中那天的标题栏：独立于日历卡片，直接作为列表的节标题 */
+.companion-day-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin: 18rpx 2rpx 14rpx;
+}
+
+.companion-day-bar-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 12rpx;
+  min-width: 0;
+}
+
+.companion-day-bar-title {
+  overflow: hidden;
+  color: var(--app-text);
+  font-family: var(--app-font-serif);
+  font-size: 31rpx;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-day-bar-count {
+  flex-shrink: 0;
+  color: var(--app-text-muted);
+  font-size: 23rpx;
+}
+
 .companion-trail-filter-actions {
   display: flex;
   align-items: center;

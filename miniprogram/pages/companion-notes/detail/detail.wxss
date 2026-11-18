@@ -134,6 +134,29 @@
   gap: 10rpx;
 }
 
+/* 单篇分享按钮：和点亮按钮同一形态 */
+.companion-share-btn {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin: 0;
+  min-height: 78rpx;
+  padding: 0 26rpx;
+  border: none;
+  border-radius: 22rpx;
+  background: var(--app-paper, #fffdf8);
+  border: 1rpx solid var(--app-border, rgba(92, 70, 44, 0.14));
+  color: var(--app-text);
+  font-size: 27rpx;
+  line-height: 1.4;
+}
+
+.companion-share-btn::after {
+  border: none;
+}
+
 .companion-open-btn .app-icon {
   width: 34rpx;
   height: 34rpx;

@@ -46,6 +46,10 @@
         <view class="app-icon {{note.isLiked ? 'app-icon-sun' : 'app-icon-sunrise'}}"></view>
         <text>{{note.isLiked ? '已点亮' : '点亮'}} {{note.likeCount}}</text>
       </view>
+      <button class="companion-share-btn" open-type="share" hover-class="none">
+        <view class="app-icon app-icon-share"></view>
+        <text>分享</text>
+      </button>
     </view>
 
     <view wx:if="{{downloading}}" class="companion-download-card app-card">

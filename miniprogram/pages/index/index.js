@@ -1974,11 +1974,19 @@ Page({
   handleCompanionNoteStripTap(e) {
     const dataset = e.currentTarget && e.currentTarget.dataset || {};
     const noteId = dataset.noteId || '';
-    const periodId = dataset.periodId || this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    // 左半边点进去看单篇（有新篇直达；都读过了进专区）
     if (noteId) {
       wx.navigateTo({ url: `/pages/companion-notes/detail/detail?id=${encodeURIComponent(noteId)}` });
       return;
     }
+    const periodId = dataset.periodId || this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
+    const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : '';
+    wx.navigateTo({ url: `/pages/companion-notes/list/list${query}` });
+  },
+
+  openCompanionNoteZone(e) {
+    const periodId = (e.currentTarget && e.currentTarget.dataset && e.currentTarget.dataset.periodId)
+      || this.data.currentPeriod?._id || this.data.currentPeriod?.id || '';
     const query = periodId ? `?periodId=${encodeURIComponent(periodId)}` : '';
     wx.navigateTo({ url: `/pages/companion-notes/list/list${query}` });
   },

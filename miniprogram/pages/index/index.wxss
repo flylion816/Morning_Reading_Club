@@ -969,6 +969,15 @@
   box-shadow: 0 6rpx 14rpx rgba(184, 99, 31, 0.08);
 }
 
+/* 左侧主体（封面+文案）：点击进单篇 */
+.companion-home-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 16rpx;
+  min-width: 0;
+}
+
 .companion-home-cover {
   display: flex;
   flex: 0 0 70rpx;
