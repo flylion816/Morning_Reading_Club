@@ -1055,7 +1055,9 @@ onMounted(() => {
 .status-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .incomplete-mark { color: var(--admin-warning); font-size: 11px; }
 .stats-cell { color: var(--admin-ink-soft); font-family: var(--admin-font-number); font-size: 12px; white-space: nowrap; }
-.row-actions { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+.row-actions { display: flex; align-items: center; gap: 0; white-space: nowrap; }
+.row-actions .el-button + .el-button { margin-left: 0; }
+.row-actions .el-button { padding-inline: 4px !important; }
 .muted { color: var(--admin-ink-muted); font-size: 12px; }
 .note-form { padding: 2px 2px 24px; }
 .note-form :deep(.el-form-item) { margin-bottom: 18px; }
