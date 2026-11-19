@@ -38,7 +38,7 @@
     <view class="companion-detail-actions">
       <view class="app-btn-primary companion-open-btn {{downloading || isOpening ? 'companion-btn-disabled' : ''}}" bindtap="openDocument">
         <view class="app-icon app-icon-book"></view>
-        <text wx:if="{{downloading}}">正在取手札 {{downloadProgress}}%</text>
+        <text wx:if="{{downloading}}">正取 {{downloadProgress}}%</text>
         <text wx:elif="{{isOpening}}">正在打开…</text>
         <text wx:else>翻开手札</text>
       </view>
@@ -59,7 +59,7 @@
       </view>
       <view class="companion-download-bar"><view style="width: {{downloadProgress}}%"></view></view>
       <view class="companion-download-foot">
-        <text wx:if="{{downloadTotal}}">{{downloadLoaded}} / {{downloadTotal}}</text>
+        <text wx:if="{{downloadTotal}}">{{downloadLoadedText}} / {{downloadTotalText}}</text>
         <text wx:else>正在连接…</text>
         <text class="companion-download-cancel" bindtap="cancelDownload">取消</text>
       </view>

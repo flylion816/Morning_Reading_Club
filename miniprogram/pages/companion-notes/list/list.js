@@ -143,7 +143,7 @@ function buildTrail(overview = {}, notes = []) {
     .map(item => build(item.day, `第 ${item.day} 天`, true, item.isRead, false, item.count, String(item.day)));
 }
 
-function buildPeriodTabs(items = [], activePeriodId = '', activeScope = '') {
+function buildPeriodTabs(items = [], activePeriodId = '', activeScope = '', hasGeneralNotes = false) {
   const tabs = [];
   const seen = new Set();
   (Array.isArray(items) ? items : []).forEach(item => {
@@ -158,7 +158,10 @@ function buildPeriodTabs(items = [], activePeriodId = '', activeScope = '') {
     });
   });
   if (!tabs.some(item => item.active) && tabs.length && !activeScope) tabs[0].active = true;
-  tabs.push({ id: '', name: '全营', scope: 'general', active: activeScope === 'general' });
+  // 「其他」只在没有绑定期次的手札真实存在时才出现
+  if (hasGeneralNotes || activeScope === 'general') {
+    tabs.push({ id: '', name: '其他', scope: 'general', active: activeScope === 'general' });
+  }
   return tabs;
 }
 
@@ -287,25 +290,24 @@ Page({
             ? notes.length < Number(pagination.total)
             : rows.length >= PAGE_SIZE;
       const overview = Object.keys(overviewPayload).length ? overviewPayload : payload;
+      // 「其他」tab 只在列表里真的有不属于任何期次的手札时才有意义
+      const hasGeneralNotes = rows.some(note => !note.periodId);
       const periodItems = payload.periods || payload.periodTabs || payload.availablePeriods || notes
         .filter(note => note.periodId)
         .map(note => ({ id: note.periodId, name: note.periodName || '本期' }));
-      const tabs = buildPeriodTabs(periodItems, this.data.activePeriodId, this.data.activeScope);
+      const tabs = buildPeriodTabs(periodItems, this.data.activePeriodId, this.data.activeScope, hasGeneralNotes);
       const firstTab = tabs.find(tab => tab.active) || tabs[0];
       const activePeriodId = this.data.activeScope === 'general'
         ? ''
         : this.data.activePeriodId || (firstTab && firstTab.scope === 'period' ? firstTab.id : '');
       const latestRaw = payload.latestUnread || notes.find(item => !item.isRead) || overview.latestUnread || overview.latest || null;
       const latest = latestRaw && (latestRaw.id || latestRaw._id) ? decorateNote(latestRaw) : null;
-      // 默认选中：今天；今天没有手札则选最近有手札的一天（外部带 day 参数进来时优先）
+      // 默认不选中某一天，呈现全部内容；只有外部分享链接带 day 参数进来时才定位到那天
       const trail = buildTrail(overview, notes);
       const dayParam = Number(this._initialDay);
-      const hasNotesDays = trail.filter(item => item.hasNotes).map(item => item.day);
-      const todayEntry = trail.find(item => item.isToday && item.hasNotes);
-      const fallbackDay = hasNotesDays.length ? hasNotesDays[hasNotesDays.length - 1] : null;
       const selectedDay = Number.isFinite(dayParam) && dayParam >= 0 && trail.some(item => item.day === dayParam)
         ? dayParam
-        : (todayEntry ? todayEntry.day : fallbackDay);
+        : null;
       this._hasLoaded = true;
       this._loadingStarted = false;
       this._needsRefresh = false;
