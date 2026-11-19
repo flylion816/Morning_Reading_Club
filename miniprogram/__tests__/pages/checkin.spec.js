@@ -491,12 +491,15 @@ describe('checkin page', () => {
     );
   });
 
-  test('celebration falls back to dawn ritual style C without config and fires medium haptic', () => {
+  test('celebration falls back to dawn ritual style C without config and fires medium haptic', async () => {
     const feedback = require('../../utils/feedback');
     const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
     pageInstance._celebrationCfg = undefined;
+    // 展示前会再拉一次配置：这里让它失败，保持无配置的兜底路径
+    const configService = require('../../services/checkinConfig.service');
+    configService.getConfig.mockRejectedValueOnce(new Error('offline'));
 
-    pageInstance.showCheckinCelebration.call(pageInstance);
+    await pageInstance.showCheckinCelebration.call(pageInstance);
 
     expect(pageInstance.data.showCelebration).toBe(true);
     expect(pageInstance.data.celebrationStyle).toBe('C');
@@ -504,16 +507,31 @@ describe('checkin page', () => {
     hapticSpy.mockRestore();
   });
 
-  test('celebration follows backend configured style when config exists', () => {
+  test('celebration follows backend configured style when config exists', async () => {
     const feedback = require('../../utils/feedback');
     const hapticSpy = jest.spyOn(feedback, 'haptic').mockImplementation(() => {});
     pageInstance._celebrationCfg = { animationStyle: 'B', message: '读完了' };
+    // 展示前重拉配置失败：沿用已有的 B 配置，不被兜底覆盖
+    const configService = require('../../services/checkinConfig.service');
+    configService.getConfig.mockRejectedValueOnce(new Error('offline'));
 
-    pageInstance.showCheckinCelebration.call(pageInstance);
+    await pageInstance.showCheckinCelebration.call(pageInstance);
 
     expect(pageInstance.data.celebrationStyle).toBe('B');
     expect(hapticSpy).toHaveBeenCalledWith('medium');
     hapticSpy.mockRestore();
+  });
+
+  test('celebration refreshes random config right before showing', async () => {
+    const configService = require('../../services/checkinConfig.service');
+    configService.getConfig.mockResolvedValueOnce({ animationStyle: 'E', message: '新的一条' });
+    pageInstance._celebrationCfg = { animationStyle: 'B', message: '旧的' };
+
+    await pageInstance.showCheckinCelebration.call(pageInstance);
+
+    expect(configService.getConfig).toHaveBeenCalled();
+    expect(pageInstance.data.celebrationStyle).toBe('E');
+    expect(pageInstance.data.celebrationMessage).toContain('新的一条');
   });
 
   test('records the lesson day for the dawn ritual using the loaded period numbering base', async () => {

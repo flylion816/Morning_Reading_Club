@@ -67,6 +67,9 @@ const getPublicConfig = async (req, res) => {
     const animationStyle = config.animationStyle === 'random'
       ? enabledStyles[Math.floor(Math.random() * enabledStyles.length)]
       : config.animationStyle;
+    // 随机结果禁止任何一层缓存：否则客户端可能连续多天看到同一套仪式
+    res.set('Cache-Control', 'no-store, max-age=0');
+    res.removeHeader('ETag');
     res.json(success({
       animationStyle: animationStyle || 'A',
       enabledAnimationStyles: enabledStyles,
