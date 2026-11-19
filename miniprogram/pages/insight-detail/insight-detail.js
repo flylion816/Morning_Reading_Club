@@ -939,7 +939,7 @@ Page({
             const W = INSIGHT_POSTER_WIDTH;
             const PADDING = 48;
             const CONTENT_W = W - PADDING * 2;
-            const FOOTER_H = 148;
+            const FOOTER_H = 190;
             const TITLE_FONT = 42;
             const TITLE_LINE_H = 58;
             const CONTENT_FONT = 28;
@@ -1079,14 +1079,14 @@ Page({
             ctx.lineTo(W - PADDING, footerTop + 24);
             ctx.stroke();
 
-            // Brand logo (right side) —— 新品牌 logo，不再用旧版小程序码图
-            let logoImage = null;
+            // 小程序码（右下角，白底衬托 + 扫码共读说明）
+            let qrImage = null;
             try {
-              logoImage = await new Promise((res, rej) => {
+              qrImage = await new Promise((res, rej) => {
                 const img = canvas.createImage();
                 img.onload = () => res(img);
                 img.onerror = rej;
-                img.src = getBrandLogo();
+                img.src = '/assets/images/mini-program-code.jpg';
               });
             } catch (e) {
               // continue without image
@@ -1096,8 +1096,29 @@ Page({
             const QR_X = W - PADDING - QR_SIZE;
             const QR_Y = footerTop + 44;
 
-            if (logoImage) {
-              ctx.drawImage(logoImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+            if (qrImage) {
+              // 白色圆角底，让二维码在暖纸上干净清晰
+              const pad = 10;
+              ctx.beginPath();
+              const rx = QR_X - pad;
+              const ry = QR_Y - pad;
+              const rw = QR_SIZE + pad * 2;
+              const rh = QR_SIZE + pad * 2;
+              const rr = 16;
+              ctx.moveTo(rx + rr, ry);
+              ctx.arcTo(rx + rw, ry, rx + rw, ry + rh, rr);
+              ctx.arcTo(rx + rw, ry + rh, rx, ry + rh, rr);
+              ctx.arcTo(rx, ry + rh, rx, ry, rr);
+              ctx.arcTo(rx, ry, rx + rw, ry, rr);
+              ctx.closePath();
+              ctx.fillStyle = '#ffffff';
+              ctx.fill();
+              ctx.drawImage(qrImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+              ctx.fillStyle = WARM_MUTED;
+              ctx.font = '22px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.fillText('扫码共读', QR_X + QR_SIZE / 2, QR_Y + QR_SIZE + 34);
+              ctx.textAlign = 'left';
             }
 
             // Branding text (left side)
