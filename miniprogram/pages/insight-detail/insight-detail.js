@@ -9,8 +9,7 @@ const { requireLogin } = require('../../utils/require-login');
 const { isAdminUser } = require('../../utils/auth');
 const {
   THEME_PRIMARY,
-  WECHAT_SI_PLUGIN_ENABLED,
-  getThemeColorWithAlpha
+  WECHAT_SI_PLUGIN_ENABLED
 } = require('../../utils/theme');
 const { getBrandName } = require('../../utils/brand');
 const { getPeriodAccess } = require('../../utils/period-access');
@@ -1000,15 +999,26 @@ Page({
             ctx.scale(dpr, dpr);
             ctx.clearRect(0, 0, W, H);
 
-            // White background
-            ctx.fillStyle = '#ffffff';
+            // Warm paper background (dawn gradient like the app)
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, Math.min(H, 1200));
+            bgGradient.addColorStop(0, '#fbe3c3');
+            bgGradient.addColorStop(0.12, '#fdf0dc');
+            bgGradient.addColorStop(0.3, '#fffdf8');
+            bgGradient.addColorStop(1, '#fffdf8');
+            ctx.fillStyle = bgGradient;
             ctx.fillRect(0, 0, W, H);
 
-            // 无顶部色条，保持纯白背景
+            // Warm ink constants (matching app dawn tokens)
+            const WARM_INK = '#2b2622';        // 主文字
+            const WARM_SOFT = '#6b5d4d';       // 次级文字
+            const WARM_MUTED = '#9a8d7b';      // 弱文字
+            const WARM_ACCENT = '#b8631f';     // 晨光深（标题、强调）
+            const WARM_DAWN = '#ee9b45';       // 晨光（点缀）
+            const WARM_RULE = 'rgba(92, 70, 44, 0.16)';  // 分隔线
 
             // Title
             let cursorY = PADDING + TITLE_LINE_H;
-            ctx.fillStyle = THEME_PRIMARY;
+            ctx.fillStyle = WARM_ACCENT;
             ctx.font = `bold ${TITLE_FONT}px sans-serif`;
             ctx.textBaseline = 'alphabetic';
             ctx.textAlign = 'left';
@@ -1019,14 +1029,14 @@ Page({
 
             // Period label
             cursorY += 14;
-            ctx.fillStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.82);
+            ctx.fillStyle = WARM_SOFT;
             ctx.font = `${PERIOD_FONT}px sans-serif`;
             ctx.fillText(periodName, PADDING, cursorY);
             cursorY += 38;
 
             // Divider under period label
             cursorY += 10;
-            ctx.strokeStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.18);
+            ctx.strokeStyle = WARM_RULE;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(PADDING, cursorY);
@@ -1039,7 +1049,7 @@ Page({
               const para = wrappedParas[pi];
 
               if (para.isQuote) {
-                ctx.fillStyle = getThemeColorWithAlpha(THEME_PRIMARY, 0.24);
+                ctx.fillStyle = WARM_DAWN;
                 ctx.fillRect(PADDING, cursorY - CONTENT_LINE_H + 10, 3, para.lines.length * CONTENT_LINE_H - 10);
               }
 
@@ -1048,7 +1058,7 @@ Page({
                 let segX = baseX;
                 for (const seg of lineSegs) {
                   ctx.font = seg.bold ? BOLD_FONT : REGULAR_FONT;
-                  ctx.fillStyle = para.isQuote ? '#5b6b8c' : (seg.bold ? '#111827' : '#374151');
+                  ctx.fillStyle = para.isQuote ? '#8a4b12' : (seg.bold ? WARM_INK : WARM_SOFT);
                   ctx.fillText(seg.text, segX, cursorY);
                   segX += ctx.measureText(seg.text).width;
                 }
@@ -1062,7 +1072,7 @@ Page({
 
             // Footer divider
             const footerTop = cursorY + 56;
-            ctx.strokeStyle = '#e5e7eb';
+            ctx.strokeStyle = WARM_RULE;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.moveTo(PADDING, footerTop + 24);
@@ -1092,11 +1102,11 @@ Page({
 
             // Branding text (left side)
             const brandY = footerTop + 84;
-            ctx.fillStyle = '#1f2937';
+            ctx.fillStyle = WARM_INK;
             ctx.font = 'bold 28px sans-serif';
             ctx.fillText(`By 小凡@${getBrandName()}`, PADDING, brandY);
 
-            ctx.fillStyle = '#9ca3af';
+            ctx.fillStyle = WARM_MUTED;
             ctx.font = '24px sans-serif';
             ctx.fillText('AI生成，注意甄别！', PADDING, brandY + 40);
 
