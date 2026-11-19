@@ -1077,7 +1077,13 @@ Page({
   },
 
   // 打卡成功后展示庆祝动画
-  showCheckinCelebration() {
+  async showCheckinCelebration() {
+    // 庆祝文案和动画是服务端随机返回的：展示前再拉一次，保证每次打卡都是新的一套
+    // （onLoad 时拉的那份可能已过去很久，或被客户端 HTTP 缓存命中）
+    try {
+      const fresh = await checkinConfigService.getConfig();
+      if (fresh) this._celebrationCfg = fresh;
+    } catch (e) {}
     const cfg = this._celebrationCfg || {};
 
     // 决定动画方式：后台没有返回配置时兜底用 C（晨光仪式）
