@@ -20,6 +20,13 @@ function payloadOf(result) {
   return result;
 }
 
+// 下载字节数转 MB，保留 1 位小数；不足 0.1MB 显示 KB
+function formatMb(bytes) {
+  const value = Number(bytes) || 0;
+  if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))}KB`;
+  return `${(value / 1024 / 1024).toFixed(1)}MB`;
+}
+
 function currentUser() {
   try {
     const app = typeof getApp === 'function' ? getApp() : null;
@@ -304,10 +311,14 @@ Page({
       this._downloadTask = task;
       if (task && typeof task.onProgressUpdate === 'function') {
         task.onProgressUpdate(progress => {
+          const loaded = Number(progress.totalBytesWritten) || 0;
+          const total = Number(progress.totalBytesExpectedToWrite) || 0;
           this.setData({
             downloadProgress: Number(progress.progress) || 0,
-            downloadLoaded: Number(progress.totalBytesWritten) || 0,
-            downloadTotal: Number(progress.totalBytesExpectedToWrite) || 0
+            downloadLoaded: loaded,
+            downloadTotal: total,
+            downloadLoadedText: formatMb(loaded),
+            downloadTotalText: formatMb(total)
           });
         });
       }

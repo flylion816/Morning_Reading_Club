@@ -56,13 +56,20 @@ describe('companion notes list helpers', () => {
     ]);
   });
 
-  test('keeps the all-camp tab available after period tabs', () => {
+  test('「其他」tab 只在存在未绑定期次的手札时出现', () => {
+    // 没有落单手札：不显示
     expect(pageConfig.buildPeriodTabs([
       { _id: 'p2', title: '第 12 期' },
       { _id: 'p2', title: '重复期次' }
-    ], 'p2', '')).toEqual([
+    ], 'p2', '', false)).toEqual([
+      { id: 'p2', name: '第 12 期', scope: 'period', active: true }
+    ]);
+    // 有落单手札：显示且排在期次后
+    expect(pageConfig.buildPeriodTabs([
+      { _id: 'p2', title: '第 12 期' }
+    ], 'p2', '', true)).toEqual([
       { id: 'p2', name: '第 12 期', scope: 'period', active: true },
-      { id: '', name: '全营', scope: 'general', active: false }
+      { id: '', name: '其他', scope: 'general', active: false }
     ]);
   });
 });
