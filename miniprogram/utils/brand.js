@@ -32,6 +32,11 @@ function getMiniProgramCode() {
   return String(currentTenant.miniProgramCode || '').trim() || DEFAULT_MINI_PROGRAM_CODE;
 }
 
+// 品牌新 logo（租户可配）；长图右下角的兜底展示用它，不再用旧版小程序码图
+function getBrandLogo() {
+  return String(currentTenant.logo || '').trim() || '/assets/tenants/fanren/logo.png';
+}
+
 function getBrandedTitle(title, separator = ' - ') {
   const safeTitle = String(title || '').trim();
   return safeTitle ? `${safeTitle}${separator}${getBrandName()}` : getBrandName();
@@ -50,5 +55,6 @@ module.exports = {
   getDefaultShareTitle,
   getDefaultShareImage,
   getMiniProgramCode,
+  getBrandLogo,
   getBrandedTitle
 };
