@@ -11,7 +11,7 @@ const {
   THEME_PRIMARY,
   WECHAT_SI_PLUGIN_ENABLED
 } = require('../../utils/theme');
-const { getBrandName } = require('../../utils/brand');
+const { getBrandName, getBrandLogo } = require('../../utils/brand');
 const { getPeriodAccess } = require('../../utils/period-access');
 const {
   normalizeDanmakuContent,
@@ -1079,14 +1079,14 @@ Page({
             ctx.lineTo(W - PADDING, footerTop + 24);
             ctx.stroke();
 
-            // QR / logo image (right side)
-            let qrImage = null;
+            // Brand logo (right side) —— 新品牌 logo，不再用旧版小程序码图
+            let logoImage = null;
             try {
-              qrImage = await new Promise((res, rej) => {
+              logoImage = await new Promise((res, rej) => {
                 const img = canvas.createImage();
                 img.onload = () => res(img);
                 img.onerror = rej;
-                img.src = '/assets/images/mini-program-code.jpg';
+                img.src = getBrandLogo();
               });
             } catch (e) {
               // continue without image
@@ -1096,8 +1096,8 @@ Page({
             const QR_X = W - PADDING - QR_SIZE;
             const QR_Y = footerTop + 44;
 
-            if (qrImage) {
-              ctx.drawImage(qrImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+            if (logoImage) {
+              ctx.drawImage(logoImage, QR_X, QR_Y, QR_SIZE, QR_SIZE);
             }
 
             // Branding text (left side)
