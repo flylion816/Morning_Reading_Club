@@ -63,6 +63,28 @@ describe('Sync Service', () => {
       });
     });
 
+    it('should exclude fields without dedicated MySQL columns from realtime sync', () => {
+      const transformed = transformDocumentForMySQL('insights', {
+        _id: { toString: () => 'insight123' },
+        readAt: new Date('2026-11-23T08:00:00.000Z')
+      });
+
+      expect(transformed).to.deep.equal({ id: 'insight123' });
+      expect(transformDocumentForMySQL('users', {
+        _id: { toString: () => 'user123' },
+        isNewcomerReceptionist: true
+      })).to.deep.equal({ id: 'user123' });
+    });
+
+    it('should make JSON values well-formed for MySQL JSON columns', () => {
+      const transformed = transformDocumentForMySQL('notifications', {
+        _id: { toString: () => 'notification123' },
+        data: { preview: 'a\uDC00b' }
+      });
+
+      expect(transformed.data).to.equal('{"preview":"a\\udc00b"}');
+    });
+
     it('should preserve checkin rich text HTML for MySQL sync', () => {
       const transformed = transformDocumentForMySQL('checkins', {
         _id: { toString: () => 'checkin123' },

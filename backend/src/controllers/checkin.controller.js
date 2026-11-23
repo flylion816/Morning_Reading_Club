@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Checkin = require('../models/Checkin');
 const User = require('../models/User');
 const Section = require('../models/Section');
@@ -805,6 +806,10 @@ async function getCheckinDetail(req, res, next) {
   try {
     const { checkinId } = req.params;
     const requestUserId = getRequestUserId(req);
+
+    if (!mongoose.isValidObjectId(checkinId)) {
+      return res.status(404).json(errors.notFound('打卡记录不存在'));
+    }
 
     const checkin = await Checkin.findById(checkinId)
       .populate('userId', 'nickname avatar avatarUrl signature')

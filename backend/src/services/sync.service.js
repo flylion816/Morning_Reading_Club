@@ -22,7 +22,10 @@ const SYNC_FIELD_EXCLUSIONS = {
   admins: new Set(['dbAccessPassword']),
   // 没有独立 MySQL 列的课程扩展字段由 raw_json 完整保存。
   sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration', 'lookImage', 'courseModuleValues', 'courseTemplateSnapshot']),
-  periods: new Set(['courseTemplateSnapshot', 'courseTemplateLocked'])
+  periods: new Set(['courseTemplateSnapshot', 'courseTemplateLocked']),
+  // MySQL 仅保留核心字段；完整文档已由备份链路写入 raw_json。
+  insights: new Set(['readAt']),
+  users: new Set(['isNewcomerReceptionist'])
 };
 
 function normalizeSpecialField(collection, key, value) {
@@ -32,6 +35,11 @@ function normalizeSpecialField(collection, key, value) {
   }
 
   return value;
+}
+
+function normalizeJsonString(value) {
+  return JSON.stringify(value)
+    .replace(/[\uD800-\uDFFF]/gu, character => character.charCodeAt(0).toString(16).padStart(4, '0'));
 }
 
 function quoteIdentifier(identifier) {
@@ -219,7 +227,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 function transformDocumentForMySQL(collection, doc) {
   if (collection === 'course_templates') {
     return {
-      id: String(doc._id), tenant_id: String(doc.tenantId), raw_json: JSON.stringify(doc),
+      id: String(doc._id), tenant_id: String(doc.tenantId), raw_json: normalizeJsonString(doc),
       created_at: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
       updated_at: doc.updatedAt ? new Date(doc.updatedAt).toISOString().slice(0, 19).replace('T', ' ') : null
     };
@@ -262,13 +270,13 @@ function transformDocumentForMySQL(collection, doc) {
       result[mysqlColumnName] = normalizedValue._id.toString();
     } else if (typeof normalizedValue === 'object' && normalizedValue !== null) {
       // 对象存储为 JSON 字符串
-      result[mysqlColumnName] = JSON.stringify(normalizedValue);
+      result[mysqlColumnName] = normalizeJsonString(normalizedValue);
     } else {
       result[mysqlColumnName] = normalizedValue;
     }
   }
 
-  if (collection === 'periods' || collection === 'sections') result.raw_json = JSON.stringify(doc);
+  if (collection === 'periods' || collection === 'sections') result.raw_json = normalizeJsonString(doc);
   return result;
 }
 
