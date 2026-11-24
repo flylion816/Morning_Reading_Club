@@ -14,6 +14,10 @@ const syncConfig = {
     collection: 'admins',
     operations: ['create', 'update', 'delete']
   },
+  enrollment_templates: {
+    collection: 'enrollment_templates',
+    operations: ['create', 'update', 'delete']
+  },
   periods: {
     collection: 'periods',
     operations: ['create', 'update', 'delete']

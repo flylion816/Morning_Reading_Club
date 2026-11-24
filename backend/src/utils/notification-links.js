@@ -112,7 +112,7 @@ function truncateText(text, maxLength = 24) {
     return normalized;
   }
 
-  return `${normalized.slice(0, maxLength)}...`;
+  return `${normalized.slice(0, maxLength).replace(/[\uD800-\uDBFF]$/u, '')}...`;
 }
 
 module.exports = {

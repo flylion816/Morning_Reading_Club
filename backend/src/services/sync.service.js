@@ -8,25 +8,33 @@
  * - 确保数据一致性
  */
 
+const mongoose = require('mongoose');
 const redis = require('redis');
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 const { ensureCourseTemplateTable } = require('./course-template-backup');
+const { ensureEnrollmentTemplateTable } = require('./enrollment-template-backup');
 
 let redisClient = null;
 
 const SYNC_FIELD_EXCLUSIONS = {
   payments: new Set(['isProcessing']),
-  enrollments: new Set(['isPaid', 'isActive']),
+  enrollments: new Set(['isPaid', 'isActive', 'enrollmentTemplateId', 'enrollmentTemplateSnapshot', 'enrollmentAnswers']),
   // dbAccessPassword 是管理员的数据库访问密码哈希，MySQL 表中无此列且不应同步
-  admins: new Set(['dbAccessPassword']),
+  admins: new Set(['dbAccessPassword', 'sessionVersion']),
   // 没有独立 MySQL 列的课程扩展字段由 raw_json 完整保存。
   sections: new Set(['podcastUrl', 'podcastDescription', 'podcastDuration', 'lookImage', 'courseModuleValues', 'courseTemplateSnapshot']),
-  periods: new Set(['courseTemplateSnapshot', 'courseTemplateLocked']),
-  // MySQL 仅保留核心字段；完整文档已由备份链路写入 raw_json。
+  periods: new Set([
+    'courseTemplateSnapshot', 'courseTemplateLocked', 'enrollmentTemplateId',
+    'enrollmentTemplateSnapshot', 'enrollmentTemplateLocked'
+  ]),
   insights: new Set(['readAt']),
-  users: new Set(['isNewcomerReceptionist'])
+  users: new Set(['isNewcomerReceptionist', 'buddyHidden'])
 };
+
+const SNAPSHOT_COLLECTIONS = new Set([
+  'users', 'admins', 'periods', 'enrollments', 'enrollment_templates', 'insights', 'notifications'
+]);
 
 function normalizeSpecialField(collection, key, value) {
   if (collection === 'enrollments' && (key === 'hasReadBook' || key === 'commitment')) {
@@ -38,8 +46,9 @@ function normalizeSpecialField(collection, key, value) {
 }
 
 function normalizeJsonString(value) {
-  return JSON.stringify(value)
-    .replace(/[\uD800-\uDFFF]/gu, character => character.charCodeAt(0).toString(16).padStart(4, '0'));
+  return JSON.stringify(value, (key, item) => (
+    typeof item === 'string' ? item.replace(/[\uD800-\uDFFF]/gu, '\uFFFD') : item
+  ));
 }
 
 function quoteIdentifier(identifier) {
@@ -164,6 +173,7 @@ function publishSyncEvent(event) {
 async function deleteDocumentFromMySQL(collection, documentId) {
   const conn = await mysqlPool.getConnection();
   try {
+    if (collection === 'enrollment_templates') await ensureEnrollmentTemplateTable(conn);
     const [result] = await conn.execute(
       `DELETE FROM ${quoteIdentifier(collection)} WHERE id = ?`,
       [documentId]
@@ -183,12 +193,32 @@ async function deleteDocumentFromMySQL(collection, documentId) {
 // =========================================================================
 async function syncDocumentToMySQL(collection, documentId, data) {
   try {
+    let document = data;
+    if (SNAPSHOT_COLLECTIONS.has(collection)) {
+      if (!mongoose.isValidObjectId(documentId) || !mongoose.connection.db) {
+        throw new Error('Cannot load the source document for MySQL synchronization');
+      }
+      const options = collection === 'admins' ? { projection: { dbAccessPassword: 0 } } : {};
+      document = await mongoose.connection.db.collection(collection).findOne(
+        { _id: new mongoose.Types.ObjectId(documentId) },
+        options
+      );
+      if (!document) {
+        logger.warn('Skipping MySQL sync because the source document no longer exists', {
+          collection,
+          documentId
+        });
+        return true;
+      }
+    }
+
     const conn = await mysqlPool.getConnection();
 
     try {
       // 将 MongoDB 文档字段映射到 MySQL
       if (collection === 'course_templates') await ensureCourseTemplateTable(conn);
-      const mysqlData = transformDocumentForMySQL(collection, data);
+      if (collection === 'enrollment_templates') await ensureEnrollmentTemplateTable(conn);
+      const mysqlData = transformDocumentForMySQL(collection, document);
 
       // DEBUG: 输出转换后的数据
       logger.info('✅ 日期格式修复已应用 - Transformed data for MySQL', {
@@ -225,7 +255,7 @@ async function syncDocumentToMySQL(collection, documentId, data) {
 // 4. 将 MongoDB 文档转换为 MySQL 格式
 // =========================================================================
 function transformDocumentForMySQL(collection, doc) {
-  if (collection === 'course_templates') {
+  if (collection === 'course_templates' || collection === 'enrollment_templates') {
     return {
       id: String(doc._id), tenant_id: String(doc.tenantId), raw_json: normalizeJsonString(doc),
       created_at: doc.createdAt ? new Date(doc.createdAt).toISOString().slice(0, 19).replace('T', ' ') : null,
@@ -276,7 +306,14 @@ function transformDocumentForMySQL(collection, doc) {
     }
   }
 
-  if (collection === 'periods' || collection === 'sections') result.raw_json = normalizeJsonString(doc);
+  if (SNAPSHOT_COLLECTIONS.has(collection) || collection === 'sections') {
+    const snapshot = { ...doc };
+    if (collection === 'admins') {
+      delete snapshot.password;
+      delete snapshot.dbAccessPassword;
+    }
+    result.raw_json = normalizeJsonString(snapshot);
+  }
   return result;
 }
 

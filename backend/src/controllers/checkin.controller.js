@@ -29,6 +29,15 @@ const {
   withTrustedMood
 } = require('../utils/checkin-mood');
 
+function syncUserSnapshot(userId) {
+  publishSyncEvent({
+    type: 'update',
+    collection: 'users',
+    documentId: String(userId),
+    data: { _id: userId }
+  });
+}
+
 // 心情天气已对营里公开，汇总不再设样本下限：有 1 条就显示；0 条时 counts 为 null
 // 给每条打卡带上作者的读伴 ID（读伴关系对营里公开）：前端据此给读伴的点赞、评论打上「读伴」标记。
 // 查询失败只是少一个标记，不影响打卡列表本身。
@@ -356,6 +365,7 @@ async function createCheckin(req, res, next) {
         currentStreak: newStreak,
         maxStreak: newMaxStreak
       });
+      syncUserSnapshot(userId);
     }
 
     // 更新课节的打卡人数统计
@@ -971,6 +981,7 @@ async function deleteCheckin(req, res, next) {
     user.totalCheckinDays = Math.max(0, user.totalCheckinDays - 1);
     user.totalPoints = Math.max(0, user.totalPoints - checkin.points);
     await user.save();
+    syncUserSnapshot(userId);
 
     // 更新课节打卡计数
     await Section.findByIdAndUpdate(checkin.sectionId, {
@@ -1187,6 +1198,7 @@ async function deleteAdminCheckin(req, res, next) {
       user.totalCheckinDays = Math.max(0, user.totalCheckinDays - 1);
       user.totalPoints = Math.max(0, user.totalPoints - (checkin.points || 0));
       await user.save();
+      syncUserSnapshot(checkin.userId);
     }
 
     // 更新课节统计

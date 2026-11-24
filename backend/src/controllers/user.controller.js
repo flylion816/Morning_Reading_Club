@@ -350,6 +350,13 @@ async function updateUser(req, res, next) {
 
     await user.save();
 
+    publishSyncEvent({
+      type: 'update',
+      collection: 'users',
+      documentId: user._id.toString(),
+      data: { _id: user._id }
+    });
+
     res.json(success(user, '用户信息已更新'));
   } catch (error) {
     next(error);

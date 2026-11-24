@@ -13,6 +13,7 @@ const logger = require('../src/utils/logger');
 const User = require('../src/models/User');
 const Admin = require('../src/models/Admin');
 const Period = require('../src/models/Period');
+const EnrollmentTemplate = require('../src/models/EnrollmentTemplate');
 const Section = require('../src/models/Section');
 const Checkin = require('../src/models/Checkin');
 const Enrollment = require('../src/models/Enrollment');
@@ -66,6 +67,14 @@ async function syncData() {
     syncResults.admins = admins.length;
     totalSynced += admins.length;
     console.log(`✅ admins: ${admins.length} 条\n`);
+
+    const enrollmentTemplates = await EnrollmentTemplate.find();
+    for (const template of enrollmentTemplates) {
+      await mysqlBackupService.syncEnrollmentTemplate(template);
+    }
+    syncResults.enrollment_templates = enrollmentTemplates.length;
+    totalSynced += enrollmentTemplates.length;
+    console.log(`✅ enrollment_templates: ${enrollmentTemplates.length} 条\n`);
 
     // 同步 periods
     console.log('[3/11] 正在同步 periods...');

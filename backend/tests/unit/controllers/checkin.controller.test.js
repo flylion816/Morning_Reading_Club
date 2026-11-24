@@ -31,6 +31,7 @@ describe('Checkin Controller', () => {
   let communityAccessServiceStub;
   let buddyServiceStub;
   let tenantSlugStub;
+  let syncServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -94,7 +95,7 @@ describe('Checkin Controller', () => {
       error: sandbox.stub()
     };
 
-    const syncServiceStub = {
+    syncServiceStub = {
       publishSyncEvent: sandbox.stub()
     };
 
@@ -1333,6 +1334,11 @@ describe('Checkin Controller', () => {
 
       expect(res.json.called).to.be.true;
       expect(CheckinStub.findByIdAndDelete.called).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userId.toString()
+      })).to.be.true;
     });
 
     it('应该返回404当打卡不存在', async () => {
@@ -1690,6 +1696,11 @@ describe('Checkin Controller', () => {
       await checkinController.createCheckin(req, res, next);
 
       expect(res.status.calledWith(201)).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userId.toString()
+      })).to.be.true;
     });
 
     it('TC-CHECKIN-015: 应该处理用户不存在的情况', async () => {
@@ -2913,6 +2924,11 @@ describe('Checkin Controller', () => {
       await checkinController.deleteCheckin(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userIdStr
+      })).to.be.true;
     });
 
     it('TC-CHECKIN-056: 应该返回404打卡不存在', async () => {

@@ -131,6 +131,15 @@ async function notifyUsers(req, userIds, type, title, content, options = {}) {
   });
 }
 
+function syncInsightSnapshot(insightId) {
+  publishSyncEvent({
+    type: 'update',
+    collection: 'insights',
+    documentId: String(insightId),
+    data: { _id: insightId }
+  });
+}
+
 async function persistInsight(insightData) {
   const insight = await Insight.create({ ...insightData, tenantId: insightData.tenantId || getCurrentTenantId() });
 
@@ -1002,7 +1011,11 @@ async function getInsightDetail(req, res, next) {
         { _id: insight._id, readAt: null },
         { $set: { readAt: new Date() } },
         { timestamps: false }
-      ).catch(() => {});
+      ).then(result => {
+        if (result.modifiedCount) {
+          syncInsightSnapshot(insight._id);
+        }
+      }).catch(() => {});
     }
 
     res.json(success(insight));
@@ -2573,6 +2586,7 @@ async function likeInsight(req, res, next) {
       insight.likes.push({ userId, createdAt: new Date() });
       insight.likeCount = insight.likes.length;
       await insight.save();
+      syncInsightSnapshot(insight._id);
 
       // 通知看见的主人（异步，不阻塞响应）
       const insightOwnerId = insight.targetUserId?.toString?.();
@@ -2594,6 +2608,7 @@ async function likeInsight(req, res, next) {
       insight.likes.splice(likeIndex, 1);
       insight.likeCount = insight.likes.length;
       await insight.save();
+      syncInsightSnapshot(insight._id);
 
       res.json(success(insight, '取消点赞成功'));
     } else {
@@ -2626,6 +2641,7 @@ async function unlikeInsight(req, res, next) {
     insight.likes.splice(likeIndex, 1);
     insight.likeCount = insight.likes.length;
     await insight.save();
+    syncInsightSnapshot(insight._id);
 
     res.json(success(insight, '取消点赞成功'));
   } catch (error) {
@@ -2743,6 +2759,7 @@ async function adminLikeForUser(req, res, next) {
     insight.likes.push({ userId, createdAt: new Date() });
     insight.likeCount = insight.likes.length;
     await insight.save();
+    syncInsightSnapshot(insight._id);
 
     const danmaku = await InsightDanmaku.create({
       insightId,
@@ -2814,6 +2831,7 @@ async function adminDeleteDanmaku(req, res, next) {
         insight.likes = insight.likes.filter(l => String(l.userId) !== String(danmaku.userId));
         insight.likeCount = insight.likes.length;
         await insight.save();
+        syncInsightSnapshot(insight._id);
       }
     }
 
@@ -2992,7 +3010,8 @@ async function searchInsights(req, res, next) {
 async function recordShare(req, res, next) {
   try {
     const { insightId } = req.params;
-    await Insight.findByIdAndUpdate(insightId, { $inc: { shareCount: 1 } });
+    const insight = await Insight.findByIdAndUpdate(insightId, { $inc: { shareCount: 1 } });
+    if (insight) syncInsightSnapshot(insight._id);
     res.json(success(null, '已记录'));
   } catch (error) {
     next(error);

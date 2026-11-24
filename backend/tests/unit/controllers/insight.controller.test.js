@@ -444,6 +444,11 @@ describe('Insight Controller - 102+ 完整测试', () => {
       expect(filter).to.deep.equal({ _id: insightId, readAt: null });
       expect(update.$set.readAt).to.be.instanceOf(Date);
       expect(options).to.deep.equal({ timestamps: false });
+      expect(publishSyncEventStub.calledWithMatch({
+        type: 'update',
+        collection: 'insights',
+        documentId: insightId.toString()
+      })).to.be.true;
 
       // 已经读过：不再写
       mockInsight.readAt = new Date();
@@ -2955,6 +2960,11 @@ describe('Insight Controller - 102+ 完整测试', () => {
 
       expect(mockInsight.likes.length).to.be.greaterThan(0);
       expect(mockInsight.save.called).to.be.true;
+      expect(publishSyncEventStub.calledWithMatch({
+        type: 'update',
+        collection: 'insights',
+        documentId: insightId.toString()
+      })).to.be.true;
     });
 
     it('TC-INTERACT-001A: 给他人的小凡看见点赞会发送站内和微信订阅通知', async () => {
@@ -3204,6 +3214,21 @@ describe('Insight Controller - 102+ 完整测试', () => {
       await insightController.unlikeInsight(req, res, next);
 
       expect(res.status.calledWith(400)).to.be.true;
+    });
+
+    it('分享计数更新后同步完整看见快照', async () => {
+      const insightId = fixtures.testInsights.user1ToUser2._id;
+      req.params = { insightId };
+      InsightStub.findByIdAndUpdate.resolves({ _id: insightId });
+
+      await insightController.recordShare(req, res, next);
+
+      expect(publishSyncEventStub.calledWithMatch({
+        type: 'update',
+        collection: 'insights',
+        documentId: insightId.toString()
+      })).to.be.true;
+      expect(res.json.calledOnce).to.be.true;
     });
   });
 });

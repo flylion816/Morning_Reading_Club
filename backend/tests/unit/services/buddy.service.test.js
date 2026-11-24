@@ -85,6 +85,7 @@ describe('buddy.service', () => {
   let ongoing;
   let periodDoc;
   let service;
+  let publishedEvents;
   // 内容安全检查的假实现：记下每次请求；设了 securityError 就抛出它
   let securityCalls;
   let securityError;
@@ -126,6 +127,7 @@ describe('buddy.service', () => {
       return doc;
     };
     usersModel = makeModel();
+    publishedEvents = [];
     reactions = makeModel((docs, doc) => {
       if (docs.some(d => S(d.checkinId) === S(doc.checkinId) && S(d.fromUserId) === S(doc.fromUserId))) throw dup();
     });
@@ -159,6 +161,7 @@ describe('buddy.service', () => {
         findCommunityEnrollment: async userId => (enrolled.has(userId) ? { paymentStatus: 'paid' } : null)
       },
       './period-status.service': { calculatePeriodStatus: () => (ongoing ? 'ongoing' : 'completed') },
+      './sync.service': { publishSyncEvent: event => publishedEvents.push(event) },
       './content-security.service': {
         CONTENT_RISKY: 'CONTENT_RISKY',
         CONTENT_CHECK_UNAVAILABLE: 'CONTENT_CHECK_UNAVAILABLE',
@@ -1069,6 +1072,12 @@ describe('buddy.service', () => {
     it('选择「不出现在名单里」后，别人看不到、也邀请不了；可以再打开', async () => {
       expect((await service.getState(B3, PID, NOW)).discoverable).to.equal(true);
       await service.setDiscoverable(B3, false);
+      expect(publishedEvents).to.deep.include({
+        type: 'update',
+        collection: 'users',
+        documentId: B3,
+        data: { _id: B3 }
+      });
       expect((await service.getState(B3, PID, NOW)).discoverable).to.equal(false);
       const list = (await service.listCandidates(B1, PID, {}, NOW)).list;
       expect(list.map(c => c.userId)).to.not.include(B3);
