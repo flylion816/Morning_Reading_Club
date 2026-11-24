@@ -18,6 +18,7 @@ const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 const mysqlBackupService = require('./mysql-backup.service');
 const { ensureCourseTemplateTable } = require('./course-template-backup');
+const { ensureEnrollmentTemplateTable } = require('./enrollment-template-backup');
 const { withSystemContext } = require('../utils/tenantContext');
 const {
   buildSyncReferenceContext,
@@ -29,6 +30,7 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Period = require('../models/Period');
 const CourseTemplate = require('../models/CourseTemplate');
+const EnrollmentTemplate = require('../models/EnrollmentTemplate');
 const Section = require('../models/Section');
 const Checkin = require('../models/Checkin');
 const Enrollment = require('../models/Enrollment');
@@ -267,6 +269,7 @@ async function checkDataConsistencyAndSync() {
       users: User,
       admins: Admin,
       course_templates: CourseTemplate,
+      enrollment_templates: EnrollmentTemplate,
       periods: Period,
       sections: Section,
       checkins: Checkin,
@@ -290,6 +293,7 @@ async function checkDataConsistencyAndSync() {
       const conn = await mysqlPool.getConnection();
       try {
         if (table === 'course_templates') await ensureCourseTemplateTable(conn);
+        if (table === 'enrollment_templates') await ensureEnrollmentTemplateTable(conn);
         const [result] = await conn.query(`SELECT COUNT(*) as count FROM \`${table}\``);
         const mysqlCount = result[0].count || 0;
 
@@ -351,6 +355,7 @@ async function fullSyncMongoToMySQL() {
       { name: 'users', model: User, method: 'syncUser' },
       { name: 'admins', model: Admin, method: 'syncAdmin', select: '+password' },
       { name: 'course_templates', model: CourseTemplate, method: 'syncCourseTemplate' },
+      { name: 'enrollment_templates', model: EnrollmentTemplate, method: 'syncEnrollmentTemplate' },
       { name: 'periods', model: Period, method: 'syncPeriod' },
       { name: 'sections', model: Section, method: 'syncSection' },
       { name: 'checkins', model: Checkin, method: 'syncCheckin' },

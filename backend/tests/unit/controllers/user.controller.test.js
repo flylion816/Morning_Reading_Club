@@ -991,6 +991,11 @@ describe('User Controller - 100% Coverage', () => {
 
         expect(user.isNewcomerReceptionist).to.equal(true);
         expect(user.save.called).to.be.true;
+        expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+          type: 'update',
+          collection: 'users',
+          documentId: user._id.toString()
+        })).to.be.true;
       });
 
       it('普通用户不能加入接待组', async () => {

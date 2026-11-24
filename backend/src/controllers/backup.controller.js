@@ -11,6 +11,7 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const Period = require('../models/Period');
 const CourseTemplate = require('../models/CourseTemplate');
+const EnrollmentTemplate = require('../models/EnrollmentTemplate');
 const Section = require('../models/Section');
 const Checkin = require('../models/Checkin');
 const Enrollment = require('../models/Enrollment');
@@ -35,6 +36,7 @@ const MODELS = {
   users: User,
   admins: Admin,
   course_templates: CourseTemplate,
+  enrollment_templates: EnrollmentTemplate,
       periods: Period,
   sections: Section,
   checkins: Checkin,
@@ -49,7 +51,7 @@ const MODELS = {
 const MAX_DATABASE_PAGE_SIZE = 100;
 const MAX_FIELD_COMPARE_RECORDS = 1000;
 const SENSITIVE_FIELD_NAME = /(password|secret|token|api.?key|private.?key|credential|raw_json|sessionversion|refreshjti)/i;
-const FORBIDDEN_GENERIC_TABLES = new Set(['admins', 'payments', 'course_templates']);
+const FORBIDDEN_GENERIC_TABLES = new Set(['admins', 'payments', 'course_templates', 'enrollment_templates']);
 const FORBIDDEN_GENERIC_FIELDS = new Set([
   'role', 'permissions', 'tenantid', 'status', 'password', 'dbaccesspassword',
   'sessionversion', 'wechat', 'paymentstatus', 'paidamount', 'reconciled',
@@ -178,7 +180,7 @@ async function getMysqlStats(req, res) {
     const tenantId = getCurrentTenantId();
 
     const tables = [
-      'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
+      'users', 'admins', 'course_templates', 'enrollment_templates', 'periods', 'sections', 'checkins', 'enrollments',
       'payments', 'insights', 'insight_likes', 'insight_requests',
       'insight_request_audit_logs', 'comments', 'comment_replies', 'notifications'
     ];
@@ -253,7 +255,7 @@ async function compareBackup(req, res) {
     const conn = await mysqlPool.getConnection();
     try {
       const tables = [
-        'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
+        'users', 'admins', 'course_templates', 'enrollment_templates', 'periods', 'sections', 'checkins', 'enrollments',
         'payments', 'insights', 'insight_requests', 'comments', 'notifications'
       ];
       const tid = tenantId ? tenantId.toString() : null;
@@ -524,7 +526,7 @@ async function getMysqlTableData(req, res) {
     const { table, page = 1, limit = 20 } = req.query;
 
     const validTables = [
-      'users', 'admins', 'course_templates', 'periods', 'sections', 'checkins', 'enrollments',
+      'users', 'admins', 'course_templates', 'enrollment_templates', 'periods', 'sections', 'checkins', 'enrollments',
       'payments', 'insights', 'insight_likes', 'insight_requests',
       'insight_request_audit_logs', 'comments', 'comment_replies', 'notifications'
     ];
@@ -628,6 +630,11 @@ async function fullSync(req, res, next) {
 
       // 同步课程模板
       for (const template of await CourseTemplate.find({})) await mysqlBackupService.syncCourseTemplate(template);
+
+      const enrollmentTemplates = await EnrollmentTemplate.find({});
+      for (const template of enrollmentTemplates) await mysqlBackupService.syncEnrollmentTemplate(template);
+      syncResults.enrollment_templates = enrollmentTemplates.length;
+      totalSynced += enrollmentTemplates.length;
 
       // 同步 Periods
       const periods = await Period.find({});
@@ -764,6 +771,7 @@ async function deltaSync(req, res, next) {
     const mysqlIds = {};
     const tables = [
       { name: 'course_templates', mongoModel: CourseTemplate, mongoField: '_id' },
+      { name: 'enrollment_templates', mongoModel: EnrollmentTemplate, mongoField: '_id', syncMethod: 'syncEnrollmentTemplate' },
       { name: 'users', mongoModel: User, mongoField: '_id' },
       { name: 'admins', mongoModel: Admin, mongoField: '_id' },
       { name: 'checkins', mongoModel: Checkin, mongoField: '_id' },
@@ -791,7 +799,7 @@ async function deltaSync(req, res, next) {
           const docId = doc._id.toString();
           if (!mysqlIds[table.name].has(docId)) {
             // 数据在 MongoDB 但不在 MySQL，同步它
-            const syncFunctionName = `sync${table.name.charAt(0).toUpperCase()}${table.name.slice(1)}`;
+            const syncFunctionName = table.syncMethod || `sync${table.name.charAt(0).toUpperCase()}${table.name.slice(1)}`;
             const syncFunction = mysqlBackupService[syncFunctionName];
             if (syncFunction) {
               await syncFunction(doc);
@@ -834,6 +842,7 @@ async function recoverMysqlToMongo(req, res) {
       users: User,
       admins: Admin,
       course_templates: CourseTemplate,
+      enrollment_templates: EnrollmentTemplate,
       periods: Period,
       sections: Section,
       checkins: Checkin,

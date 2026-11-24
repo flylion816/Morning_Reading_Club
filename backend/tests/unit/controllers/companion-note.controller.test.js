@@ -12,6 +12,7 @@ describe('Companion note controller', () => {
   let res;
   let next;
   let loadAccessibleNote;
+  let CompanionNoteRead;
   let CompanionNoteComment;
   let contentSecurity;
   let dispatchNotificationWithSubscribe;
@@ -37,6 +38,9 @@ describe('Companion note controller', () => {
       status: 'published',
       periodId: null
     });
+    CompanionNoteRead = {
+      findOneAndUpdate: sandbox.stub()
+    };
     CompanionNoteComment = {
       create: sandbox.stub().resolves({
         _id: '507f1f77bcf86cd799439013',
@@ -79,7 +83,7 @@ describe('Companion note controller', () => {
       },
       '../models/CompanionNoteComment': CompanionNoteComment,
       '../models/CompanionNoteLike': {},
-      '../models/CompanionNoteRead': {},
+      '../models/CompanionNoteRead': CompanionNoteRead,
       '../models/Period': {},
       '../models/Section': {},
       '../models/User': User,
@@ -153,5 +157,18 @@ describe('Companion note controller', () => {
 
     expect(res.status.calledWith(404)).to.equal(true);
     expect(CompanionNoteComment.create.called).to.equal(false);
+  });
+
+  it('手札打开计数使用聚合更新，避免 openCount 更新路径冲突', async () => {
+    CompanionNoteRead.findOneAndUpdate
+      .onFirstCall().rejects(Object.assign(new Error('duplicate'), { code: 11000 }))
+      .onSecondCall().resolves({ openCount: 3 });
+
+    await controller.markRead(req, res, next);
+
+    expect(CompanionNoteRead.findOneAndUpdate.calledTwice).to.equal(true);
+    expect(CompanionNoteRead.findOneAndUpdate.firstCall.args[1]).to.be.an('array');
+    expect(CompanionNoteRead.findOneAndUpdate.secondCall.args[1]).to.be.an('array');
+    expect(res.json.calledWithMatch({ data: { firstRead: false } })).to.equal(true);
   });
 });

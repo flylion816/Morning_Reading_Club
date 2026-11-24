@@ -10,6 +10,7 @@
 const { mysqlPool } = require('../config/database');
 const logger = require('../utils/logger');
 const { ensureCourseTemplateTable } = require('./course-template-backup');
+const { ensureEnrollmentTemplateTable } = require('./enrollment-template-backup');
 
 // ===================== 数据类型转换辅助函数 =====================
 
@@ -32,6 +33,18 @@ function normalizeYesNoField(value) {
 }
 
 class MysqlBackupService {
+  async syncEnrollmentTemplate(document) {
+    if (!document?._id) return;
+    const conn = await mysqlPool.getConnection();
+    try {
+      await ensureEnrollmentTemplateTable(conn);
+      await conn.query(`INSERT INTO enrollment_templates (id, tenant_id, raw_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tenant_id=VALUES(tenant_id),
+        raw_json=VALUES(raw_json), updated_at=VALUES(updated_at)`,
+      [String(document._id), String(document.tenantId), JSON.stringify(document), document.createdAt || null, document.updatedAt || null]);
+    } finally { conn.release(); }
+  }
+
   async syncCourseTemplate(document) {
     if (!document?._id) return;
     const conn = await mysqlPool.getConnection();

@@ -31,6 +31,7 @@ describe('Checkin Controller', () => {
   let communityAccessServiceStub;
   let buddyServiceStub;
   let tenantSlugStub;
+  let syncServiceStub;
 
   beforeEach(() => {
     sandbox = sinon.createSandbox();
@@ -94,7 +95,7 @@ describe('Checkin Controller', () => {
       error: sandbox.stub()
     };
 
-    const syncServiceStub = {
+    syncServiceStub = {
       publishSyncEvent: sandbox.stub()
     };
 
@@ -128,7 +129,8 @@ describe('Checkin Controller', () => {
         '../services/sync.service': syncServiceStub,
         '../services/community-access.service': communityAccessServiceStub,
         '../services/buddy.service': buddyServiceStub,
-        '../utils/tenantSlug': tenantSlugStub
+        '../utils/tenantSlug': tenantSlugStub,
+        '../utils/checkinVisibility': require('../../../src/utils/checkinVisibility')
       }
     );
   });
@@ -774,6 +776,16 @@ describe('Checkin Controller', () => {
   });
 
   describe('getCheckinDetail', () => {
+    it('无效打卡 ID 直接按不存在处理，不触发数据库查询', async () => {
+      req.params = { checkinId: '1795475110351' };
+
+      await checkinController.getCheckinDetail(req, res, next);
+
+      expect(res.status.calledWith(404)).to.equal(true);
+      expect(CheckinStub.findById.called).to.equal(false);
+      expect(next.called).to.equal(false);
+    });
+
     it('应该允许已登录但未参加当前期次的用户查看公开打卡', async () => {
       const checkinId = new mongoose.Types.ObjectId();
       const periodId = new mongoose.Types.ObjectId();
@@ -1322,6 +1334,11 @@ describe('Checkin Controller', () => {
 
       expect(res.json.called).to.be.true;
       expect(CheckinStub.findByIdAndDelete.called).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userId.toString()
+      })).to.be.true;
     });
 
     it('应该返回404当打卡不存在', async () => {
@@ -1679,6 +1696,11 @@ describe('Checkin Controller', () => {
       await checkinController.createCheckin(req, res, next);
 
       expect(res.status.calledWith(201)).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userId.toString()
+      })).to.be.true;
     });
 
     it('TC-CHECKIN-015: 应该处理用户不存在的情况', async () => {
@@ -2403,9 +2425,11 @@ describe('Checkin Controller', () => {
       const checkinId = new mongoose.Types.ObjectId();
       const createdAt = new Date('2026-03-01');
       const updatedAt = new Date('2026-03-03');
+      req.params = { checkinId };
 
       const mockCheckin = {
         _id: checkinId,
+        isPublic: true,
         createdAt,
         updatedAt,
         likes: [],
@@ -2900,6 +2924,11 @@ describe('Checkin Controller', () => {
       await checkinController.deleteCheckin(req, res, next);
 
       expect(res.json.called).to.be.true;
+      expect(syncServiceStub.publishSyncEvent.calledWithMatch({
+        type: 'update',
+        collection: 'users',
+        documentId: userIdStr
+      })).to.be.true;
     });
 
     it('TC-CHECKIN-056: 应该返回404打卡不存在', async () => {

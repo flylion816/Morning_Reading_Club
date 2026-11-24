@@ -14,6 +14,7 @@ const { getCurrentTenantId } = require('../utils/tenantContext');
 const { toDayKey } = require('../utils/checkin-day-metrics');
 const { readTrustedMood } = require('../utils/checkin-mood');
 const contentSecurity = require('./content-security.service');
+const { publishSyncEvent } = require('./sync.service');
 
 const MAX_MATCH_ATTEMPTS = 5;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1117,6 +1118,12 @@ async function respondInvite(userId, periodId, inviteId, accept, now = new Date(
 // 是否出现在别人的读伴邀请名单里（默认出现）
 async function setDiscoverable(userId, discoverable) {
   await User.updateOne({ _id: userId }, { $set: { buddyHidden: discoverable === false } });
+  publishSyncEvent({
+    type: 'update',
+    collection: 'users',
+    documentId: String(userId),
+    data: { _id: userId }
+  });
   return { discoverable: discoverable !== false };
 }
 

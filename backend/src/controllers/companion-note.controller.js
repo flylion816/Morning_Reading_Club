@@ -672,18 +672,30 @@ async function markRead(req, res, next) {
     try {
       existing = await CompanionNoteRead.findOneAndUpdate(
         { noteId: note._id, userId },
-        {
-          $set: { lastOpenedAt: now },
-          $setOnInsert: { firstOpenedAt: now, openCount: 0 },
-          $inc: { openCount: 1 }
-        },
+        [
+          {
+            $set: {
+              lastOpenedAt: now,
+              firstOpenedAt: { $ifNull: ['$firstOpenedAt', now] },
+              openCount: { $add: [{ $ifNull: ['$openCount', 0] }, 1] }
+            }
+          }
+        ],
         { upsert: true, new: false, setDefaultsOnInsert: true }
       );
     } catch (error) {
       if (error.code !== 11000) throw error;
       existing = await CompanionNoteRead.findOneAndUpdate(
         { noteId: note._id, userId },
-        { $set: { lastOpenedAt: now }, $inc: { openCount: 1 } },
+        [
+          {
+            $set: {
+              lastOpenedAt: now,
+              firstOpenedAt: { $ifNull: ['$firstOpenedAt', now] },
+              openCount: { $add: [{ $ifNull: ['$openCount', 0] }, 1] }
+            }
+          }
+        ],
         { new: false }
       );
     }
